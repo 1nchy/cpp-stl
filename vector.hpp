@@ -134,6 +134,9 @@ public:
         }
         return iterator(this->m_data.start + _n);
     }
+    template <typename _InputIterator> iterator insert(const_iterator _pos, _InputIterator _first, _InputIterator _last) {
+        const size_type _offset = _pos - cbegin();
+    }
     iterator erase(const_iterator _pos) {}
     iterator erase(const_iterator _first, const_iterator _last) {}
     void clear() {

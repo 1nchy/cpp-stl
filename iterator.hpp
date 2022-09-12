@@ -31,9 +31,6 @@ template <typename _Tp, typename _Pointer = _Tp*, typename _Reference = _Tp&> st
         return _ptr;
     }
 
-    friend size_type operator-(const self& last, const self& first) {
-        return last._ptr - first._ptr;
-    }
     friend bool operator==(const self& lhs, const self& rhs) {
         return lhs._ptr == rhs._ptr;
     }
@@ -98,9 +95,27 @@ struct normal_iterator : public base_iterator <_Tp> {
         _tmp._ptr -= _n;
         return _tmp;
     }
+    friend difference_type operator-(const self& last, const self& first) {
+        return last._ptr - first._ptr;
+    }
 // private:
     // value_type* _ptr = nullptr;
 };
+
+
+template <typename _Iterator> difference_type distance(_Iterator first, _Iterator last);
+
+template <typename _Iterator> difference_type distance(_Iterator first, _Iterator last) {
+    difference_type _n = 0;
+    while (first != last) {
+        ++first;
+        ++n;
+    }
+    return _n;
+}
+template <typename _Tp> difference_type distance(normal_iterator<_Tp> first, normal_iterator<_Tp> last) {
+    return last - first;
+}
 
 };
 
