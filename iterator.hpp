@@ -102,19 +102,41 @@ struct normal_iterator : public base_iterator <_Tp> {
     // value_type* _ptr = nullptr;
 };
 
-
-template <typename _Iterator> difference_type distance(_Iterator first, _Iterator last);
-
 template <typename _Iterator> difference_type distance(_Iterator first, _Iterator last) {
+    return _distance(first, last);
+}
+template <typename _Iterator> void advance(_Iterator& _p, difference_type _n) {
+    _advance(_p, _n);
+}
+
+template <typename _Iterator> static difference_type _distance(_Iterator& first, _Iterator& last);
+template <typename _Iterator> static difference_type _distance(_Iterator& first, _Iterator& last) {
     difference_type _n = 0;
     while (first != last) {
         ++first;
-        ++n;
+        ++_n;
     }
     return _n;
 }
-template <typename _Tp> difference_type distance(normal_iterator<_Tp> first, normal_iterator<_Tp> last) {
+template <typename _Tp> static difference_type _distance(normal_iterator<_Tp>& first, normal_iterator<_Tp>& last) {
     return last - first;
+}
+
+template <typename _Iterator> static void _advance(_Iterator& first, difference_type _n);
+template <typename _Iterator> static void _advance(_Iterator& first, difference_type _n) {
+    if (_n > 0) {
+        while (_n--) {
+            ++first;
+        }
+    }
+    else if (_n < 0) {
+        while (_n++) {
+            --first;
+        }
+    }
+}
+template <typename _Tp> static void _advance(normal_iterator<_Tp>& first, difference_type _n) {
+    first += _n;
 }
 
 };

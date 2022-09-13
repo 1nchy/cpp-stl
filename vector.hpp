@@ -32,16 +32,16 @@ public:
     explicit vector(size_type _n, const allocator_type& _a = allocator_type()) : base(_n, _a) {}
     vector(const vector& _x) : base(_x.size(), _x.get_allocator()) {
         // m_data.copy(_x.m_data);
-        this->m_data.finish = std::uninitialized_copy(_x.m_data.start, _x.m_data.finish, this->m_data.finish);
+        this->m_data.finish = _M_uninitialized_copy(_x.m_data.start, _x.m_data.finish, this->m_data.finish);
         this->m_data.end_of_storage = this->m_data.start + _x.size();
     }
     vector(vector&& _x) : base(_x.size(), _x.get_allocator()) {
         // m_data.swap(std::move(_x).m_data);
-        this->m_data.finish = std::uninitialized_copy(std::move(_x).m_data.start, std::move(_x).m_data.finish, this->m_data.finish);
+        this->m_data.finish = _M_uninitialized_copy(std::move(_x).m_data.start, std::move(_x).m_data.finish, this->m_data.finish);
         this->m_data.end_of_storage = this->m_data.start + _x.size();
     }
     // ~vector() {
-    //     std::_Destroy(this->m_data.start, this->m_data.finish);
+    //     this->_M_destory(this->m_data.start, this->m_data.finish);
     //     this->_M_deallocate(this->m_data.start, this->m_data.end_of_storage - this->m_data.start);
     // }
     virtual ~vector() = default;
@@ -65,7 +65,7 @@ public:
         if (_n > this->capacity()) {
             const size_type _old_size = size();
             pointer _tmp = _M_allocate_copy(_n, this->begin(), this->end());
-            std::_Destroy(this->m_data.start, this->m_data.finish);
+            this->_M_destory(this->m_data.start, this->m_data.finish);
             this->_M_deallocate(this->m_data.start, this->m_data.end_of_storage - this->m_data.start);
             this->m_data.start = _tmp;
             this->m_data.finish = _tmp + _old_size;
@@ -78,7 +78,7 @@ public:
         }
         const size_type _n = this->size();
         pointer _new_start = _M_allocate_copy(_n, this->m_data.start, this->m_data.finish);
-        std::_Destroy(this->m_data.start, this->m_data.finish);
+        this->_M_destory(this->m_data.start, this->m_data.finish);
         this->_M_deallocate(this->m_data.start, this->m_data.end_of_storage - this->m_data.start);
         this->m_data.start = _new_start;
         this->m_data.finish = _new_start + _n;
@@ -108,7 +108,7 @@ public:
             ++this->m_data.finish;
         }
         else {
-            _M_realloc_insert(end(), _x);
+            _M_realloc_insert(this->m_data.finish, _x);
         }
     }
     void push_back(value_type&& _x) {
@@ -122,29 +122,31 @@ public:
         const size_type _n = _pos - cbegin();
         if (this->m_data.finish != this->m_data.end_of_storage) {
             if (_pos == cend()) {
-                _M_construct(begin() + _n, _e);
+                this->_M_construct(this->m_data.start + _n, _e);
                 ++this->m_data.finish;
             }
             else {
-                _M_insert(begin() + _n, _e);
+                _M_insert(this->m_data.start + _n, _e);
             }
         }
         else {
-            _M_realloc_insert(begin() + _n, _e);
+            _M_realloc_insert(this->m_data.start + _n, _e);
         }
         return iterator(this->m_data.start + _n);
     }
     template <typename _InputIterator> iterator insert(const_iterator _pos, _InputIterator _first, _InputIterator _last) {
         const size_type _offset = _pos - cbegin();
+        _M_range_insert(this->m_data.start + _offset, _first, _last);
+        return begin() + _offset;
     }
     iterator erase(const_iterator _pos) {}
     iterator erase(const_iterator _first, const_iterator _last) {}
     void clear() {
-        std::_Destroy(this->m_data.start, this->m_data.finish);
+        this->_M_destory(this->m_data.start, this->m_data.finish);
         this->m_data.finish = this->m_data.start;
     }
     template <class... _Args> iterator emplace(const_iterator _pos, _Args&&... _args) {
-        return _M_emplace(_pos, std::forward<_Args>(_args)...);
+        return _M_emplace(_pos.base(), std::forward<_Args>(_args)...);
     }
     template <class... _Args> void emplace_back(_Args&&... _args) {
         if (m_data.finish != m_data.end_of_storage) {
@@ -152,7 +154,7 @@ public:
             ++this->m_data.finish;
         }
         else {
-            _M_realloc_insert(end(), std::forward<_Args>(_args)...);
+            _M_realloc_insert(this->m_data.finish, std::forward<_Args>(_args)...);
         }
     }
 
@@ -174,18 +176,15 @@ public:
         return os;
     }
 protected:
-    void _M_construct(iterator _pos, const value_type& _x) {
-        alloc_traits::construct(this->m_data, _pos._ptr, _x);
+    pointer _M_uninitialized_copy(pointer _first, pointer _last, pointer _res) {
+        return std::__uninitialized_copy_a(_first, _last, _res, this->m_data);
     }
-    template <class... _Args> void _M_construct(iterator _pos, _Args&&... _args) {
-        alloc_traits::construct(this->m_data, _pos._ptr, std::forward<_Args>(_args)...);
-    }
-    void _M_destory(iterator _pos) {
-        alloc_traits::destory(this->m_data, _pos._ptr);
+    pointer _M_uninitialized_move(pointer _first, pointer _last, pointer _res) {
+        return std::__uninitialized_move_a(_first, _last, _res, this->m_data);
     }
     pointer _M_allocate_copy(size_type _n, iterator first, iterator last) {
         pointer _ret = this->_M_allocate(_n);
-        std::uninitialized_copy(first._ptr, last._ptr, _ret);
+        _M_uninitialized_copy(first._ptr, last._ptr, _ret);
         return _ret;
     }
     size_type _M_realloc_size(size_type _n) const {
@@ -193,69 +192,112 @@ protected:
         return _len;
     }
     // need to realloc when inserting
-    void _M_realloc_insert(iterator _pos, const value_type& _x) {
+    void _M_realloc_insert(pointer _p, const value_type& _x) {
         const size_type _len = _M_realloc_size(size_type(1));
-        const size_type size_before = _pos - begin();
+        const size_type size_before = _p - this->m_data.start;
         pointer _new_start(this->_M_allocate(_len));
         pointer _new_finish(_new_start);
 
-        _M_construct(_new_start + size_before, _x);
-        _new_finish = std::uninitialized_copy(this->m_data.start, _pos._ptr, _new_finish);
+        this->_M_construct(_new_start + size_before, _x);
+        _new_finish = _M_uninitialized_copy(this->m_data.start, _p, _new_finish);
         ++_new_finish;
-        _new_finish = std::uninitialized_copy(_pos._ptr, this->m_data.finish, _new_finish);
+        _new_finish = _M_uninitialized_copy(_p, this->m_data.finish, _new_finish);
 
-        std::_Destroy(this->m_data.start, this->m_data.finish);
+        this->_M_destory(this->m_data.start, this->m_data.finish);
         this->_M_deallocate(this->m_data.start, this->m_data.end_of_storage - this->m_data.start);
         this->m_data.start = _new_start;
         this->m_data.finish = _new_finish;
         this->m_data.end_of_storage = _new_start + _len;
     }
-    template <class... _Args> void _M_realloc_insert(iterator _pos, _Args&&... _args) {
+    template <class... _Args> void _M_realloc_insert(pointer _p, _Args&&... _args) {
         const size_type _len = _M_realloc_size(size_type(1));
-        const size_type size_before = _pos - begin();
+        const size_type size_before = _p - this->m_data.start;
         pointer _new_start(this->_M_allocate(_len));
         pointer _new_finish(_new_start);
 
-        _M_construct(_new_start + size_before, std::forward<_Args>(_args)...);
-        _new_finish = std::uninitialized_copy(this->m_data.start, _pos._ptr, _new_finish);
+        this->_M_construct(_new_start + size_before, std::forward<_Args>(_args)...);
+        _new_finish = _M_uninitialized_copy(this->m_data.start, _p, _new_finish);
         ++_new_finish;
-        _new_finish = std::uninitialized_copy(_pos._ptr, this->m_data.finish, _new_finish);
+        _new_finish = _M_uninitialized_copy(_p, this->m_data.finish, _new_finish);
 
-        std::_Destroy(this->m_data.start, this->m_data.finish);
+        this->_M_destory(this->m_data.start, this->m_data.finish);
         this->_M_deallocate(this->m_data.start, this->m_data.end_of_storage - this->m_data.start);
         this->m_data.start = _new_start;
         this->m_data.finish = _new_finish;
         this->m_data.end_of_storage = _new_start + _len;
     }
     // no need to realloc when inserting
-    void _M_insert(iterator _pos, const value_type& _x) {
-        _M_construct(this->m_data.finish, *(this->m_data.finish - 1));
+    void _M_insert(pointer _p, const value_type& _x) {
+        this->_M_construct(this->m_data.finish, *(this->m_data.finish - 1));
         ++this->m_data.finish;
         value_type _x_copy = _x;
-        std::copy_backward(_pos._ptr, this->m_data.finish - 2,
+        std::move_backward(_p, this->m_data.finish - 2,
                             this->m_data.finish - 1);
-        *_pos = _x_copy;
+        *_p = _x_copy;
     }
-    template <class... _Args> void _M_insert(iterator _pos, _Args&&... _args) {
-        _M_construct(this->m_data.finish, *(this->m_data.finish - 1));
+    template <class... _Args> void _M_insert(pointer _p, _Args&&... _args) {
+        this->_M_construct(this->m_data.finish, *(this->m_data.finish - 1));
         ++this->m_data.finish;
-        std::copy_backward(_pos._ptr, this->m_data.finish - 2,
+        std::move_backward(_p, this->m_data.finish - 2,
                             this->m_data.finish - 1);
-        _M_construct(_pos, std::forward<_Args>(_args)...);
+        this->_M_construct(_p, std::forward<_Args>(_args)...);
     }
-    template <class... _Args> iterator _M_emplace(const_iterator _pos, _Args&&... _args) {
-        const size_type _n = _pos - cbegin();
-        if (this->m_data.finish != this->m_data.end_of_storage) {
-            if (_pos == cend()) {
-                _M_construct(begin() + _n, std::forward<_Args>(_args)...);
-                ++this->m_data.finish;
+    template <typename _Iter> void _M_range_insert(pointer _p, _Iter _first, _Iter _last) {
+        if (_first == _last) {
+            return;
+        }
+        const size_type _n = asp::distance(_first, _last);
+        pointer _old_finish(this->m_data.finish);
+        if (size_type(this->m_data.end_of_storage - this->m_data.finish) >= _n) {
+            // allocated memory is enough
+            const size_type _elems_after = this->m_data.finish - _p;
+            if (_elems_after > _n) {
+                _M_uninitialized_move(this->m_data.finish - _n, this->m_data.finish, this->m_data.finish);
+                this->m_data.finish += _n;
+                std::move_backward(_p, _old_finish - _n, _old_finish);
+                // std::copy(_first, _last, iterator(_p));
+                std::__uninitialized_copy_a(_first, _last, _p, this->m_data);
             }
             else {
-                _M_insert(begin() + _n, std::forward<_Args>(_args)...);
+                _Iter _mid = _first;
+                asp::advance(_mid, _elems_after);
+                // _M_uninitialized_copy(_mid.base(), _last.base(), this->m_data.finish);
+                std::__uninitialized_copy_a(_mid, _last, this->m_data.finish, this->m_data);
+                this->m_data.finish += _n - _elems_after;
+                _M_uninitialized_move(_p, _old_finish, this->m_data.finish);
+                this->m_data.finish += _elems_after;
+                // std::copy(_first, _mid, iterator(_p));
+                std::__uninitialized_copy_a(_first, _mid, _p, this->m_data);
             }
         }
         else {
-            _M_realloc_insert(begin() + _n, std::forward<_Args>(_args)...);
+            const size_type _len = _M_realloc_size(_n);
+            pointer _new_start(this->_M_allocate(_len));
+            pointer _new_finish(_new_start);
+            _new_finish = _M_uninitialized_move(this->m_data.start, _p, _new_finish);
+            // _new_finish = _M_uninitialized_copy(_first.base(), _last.base(), _new_finish); /// caution!!
+            _new_finish = std::__uninitialized_copy_a(_first, _last, _new_finish, this->m_data);
+            _new_finish = _M_uninitialized_move(_p, this->m_data.finish, _new_finish);
+            this->_M_destory(this->m_data.start, this->m_data.finish);
+            this->_M_deallocate(this->m_data.start, this->m_data.end_of_storage - this->m_data.start);
+            this->m_data.start = _new_start;
+            this->m_data.finish = _new_finish;
+            this->m_data.end_of_storage = _new_start + _len;
+        }
+    }
+    template <class... _Args> iterator _M_emplace(const pointer _p, _Args&&... _args) {
+        const size_type _n = _p - this->m_data.start;
+        if (this->m_data.finish != this->m_data.end_of_storage) {
+            if (_p == this->m_data.finish) {
+                this->_M_construct(this->m_data.start + _n, std::forward<_Args>(_args)...);
+                ++this->m_data.finish;
+            }
+            else {
+                _M_insert(this->m_data.start + _n, std::forward<_Args>(_args)...);
+            }
+        }
+        else {
+            _M_realloc_insert(this->m_data.start + _n, std::forward<_Args>(_args)...);
         }
         return iterator(this->m_data.start + _n);
     }

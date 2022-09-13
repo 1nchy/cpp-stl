@@ -29,7 +29,7 @@ template <typename _Tp> struct vector_data {
         start = rhs.start; finish = rhs.finish; end_of_storage = rhs.end_of_storage;
         rhs.reset();
     }
-     
+
 
     void copy(const vdata& d) {
         start = d.start; finish = d.finish; end_of_storage = d.end_of_storage;
@@ -53,13 +53,18 @@ public:
 template <typename _Tp, class _Alloc = std::allocator<_Tp>> struct vector_impl
  : public vector_data<_Tp>, public _Alloc {
     typedef _Alloc allocator_type;
+    typedef vector_data<_Tp> base;
+    typedef vector_impl<_Tp, _Alloc> self;
+    typedef _Tp value_type;
+    typedef _Tp* pointer;
+
     vector_impl() : _Alloc() {}
     explicit vector_impl(const allocator_type& a) : _Alloc(a) {}
-    vector_impl(vector_impl&& x) : _Alloc(std::move(x)), vector_data<_Tp>(x) {}
+    vector_impl(vector_impl&& x) : _Alloc(std::move(x)), base(x) {}
 
-    using vector_data<_Tp>::start;
-    using vector_data<_Tp>::finish;
-    using vector_data<_Tp>::end_of_storage;
+    using base::start;
+    using base::finish;
+    using base::end_of_storage;
 };
 
 template <typename _Tp, typename _Alloc = std::allocator<_Tp>> struct vector_base {
@@ -87,8 +92,14 @@ template <typename _Tp, typename _Alloc = std::allocator<_Tp>> struct vector_bas
     void _M_construct(pointer _p, const value_type& _x) {
         alloc_traits::construct(this->m_data, _p, _x);
     }
+    template <class... _Args> void _M_construct(pointer _p, _Args&&... _args) {
+        alloc_traits::construct(this->m_data, _p, std::forward<_Args>(_args)...);
+    }
     void _M_destory(pointer _p) {
         alloc_traits::destory(this->m_data, _p);
+    }
+    void _M_destory(pointer _first, pointer _last) {
+        std::_Destroy(_first, _last, this->m_data);
     }
     pointer _M_allocate(size_type _n) {
         return _n != 0 ? alloc_traits::allocate(m_data, _n) : pointer();
