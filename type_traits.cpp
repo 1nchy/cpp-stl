@@ -93,9 +93,23 @@ template <typename _Tp> struct remove_pointer<_Tp*> : public type_constant<_Tp> 
 template <bool _b, class _Ty1, class _Ty2> struct conditional : public type_constant<_Ty1> {};
 template <class _Ty1, class _Ty2> struct conditional<false, _Ty1, _Ty2> : public type_constant<_Ty2> {};
 
-// template <class _Tp> struct decay;
+template <class _Tp> struct decay {
+private:
+    typedef typename remove_reference<_Tp>::type _R;
+public:
+    typedef typename conditional<
+        is_array<_R>::value,
+        typename remove_extent<_R>::type*,
+        typename conditional<
+            is_function<_R>::value,
+            typename add_pointer<_R>::type,
+            typename remove_cv<_R>::type
+        >::type
+    >::type type;
+};
 
-// template <bool _b, class _Tp = void> struct enable_if;
+template <bool _b, class _Tp> struct enable_if : public type_constant<void> {};
+template <class _Tp> struct enable_if<true, _Tp> : public type_constant<_Tp> {};
 };
 
 #endif

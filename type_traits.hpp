@@ -7,7 +7,7 @@ template <typename _Tp> struct type_constant;
 template <typename _Tp, _Tp _v> struct integral_constant;
 
 template <typename _Tp> struct type_constant {
-    typedef _Tp value_type;
+    typedef _Tp type;
 };
 template <typename _Tp, _Tp _v> struct integral_constant {
     const static constexpr _Tp value = _v;
