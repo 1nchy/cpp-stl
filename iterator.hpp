@@ -64,8 +64,8 @@ struct normal_iterator : public base_iterator <_Tp> {
         _ptr = rhs._ptr;
     }
     // @iterator to @const_iterator conversion
-    // template <typename _Iter> normal_iterator(const normal_iterator<_Iter>& _i)
-    //  : base(_i) {}
+    template <typename _Iter> normal_iterator(const normal_iterator<_Iter>& _i)
+     : base(_i._ptr) {}
     
     self& operator++() {
         ++_ptr;
