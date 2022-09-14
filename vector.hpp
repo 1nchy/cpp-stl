@@ -64,7 +64,7 @@ public:
     void reserve(size_type _n) {
         if (_n > this->capacity()) {
             const size_type _old_size = size();
-            pointer _tmp = _M_allocate_copy(_n, this->begin(), this->end());
+            pointer _tmp = _M_allocate_copy(_n, this->m_data.start, this->m_data.finish);
             this->_M_destory(this->m_data.start, this->m_data.finish);
             this->_M_deallocate(this->m_data.start, this->m_data.end_of_storage - this->m_data.start);
             this->m_data.start = _tmp;
@@ -182,9 +182,9 @@ protected:
     pointer _M_uninitialized_move(pointer _first, pointer _last, pointer _res) {
         return std::__uninitialized_move_a(_first, _last, _res, this->m_data);
     }
-    pointer _M_allocate_copy(size_type _n, iterator first, iterator last) {
+    pointer _M_allocate_copy(size_type _n, pointer _first, pointer _last) {
         pointer _ret = this->_M_allocate(_n);
-        _M_uninitialized_copy(first._ptr, last._ptr, _ret);
+        _M_uninitialized_copy(_first, _last, _ret);
         return _ret;
     }
     size_type _M_realloc_size(size_type _n) const {
