@@ -7,10 +7,19 @@
 
 namespace asp {
 
-template <typename _Tp, typename _Alloc> class deque;
+template <typename _Tp, typename _Alloc = std::allocator<_Tp>> class deque;
 
-template <typename _Tp, typename _Alloc = std::allocator<_Tp>> class deque : public deque_base<_Tp, _Alloc> {
+template <typename _Tp, typename _Alloc> class deque : public deque_base<_Tp, _Alloc> {
+    typedef _Tp value_type;
+    typedef deque_base<_Tp, _Alloc> base;
+    typedef deque<_Tp, _Alloc> self;
+    typedef _Alloc allocator_type;
 
+    typedef typename base::pointer pointer;
+    typedef typename base::reference reference;
+    typedef typename base::alloc_traits alloc_traits;
+
+    using base::_data;
 };
 
 };

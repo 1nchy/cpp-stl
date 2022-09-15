@@ -58,8 +58,8 @@ template <typename _Tp, class _Alloc = std::allocator<_Tp>> struct vector_impl
     typedef _Tp value_type;
     typedef _Tp* pointer;
 
-    vector_impl() : _Alloc() {}
-    explicit vector_impl(const allocator_type& a) : _Alloc(a) {}
+    vector_impl() : _Alloc(), base() {}
+    explicit vector_impl(const allocator_type& a) : _Alloc(a), base() {}
     vector_impl(vector_impl&& x) : _Alloc(std::move(x)), base(x) {}
 
     using base::start;
@@ -117,7 +117,7 @@ template <typename _Tp, typename _Alloc = std::allocator<_Tp>> struct vector_bas
     }
 
 public:
-    vector_impl<value_type> m_data;
+    vector_impl<value_type, allocator_type> m_data;
 };
 
 };
