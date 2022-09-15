@@ -32,9 +32,9 @@ template <typename _Tp, typename _Alloc> struct deque_impl
  : public deque_data<_Tp>, public _Alloc {
     typedef deque_data<_Tp> base;
     typedef deque_impl<_Tp, _Alloc> self;
-    using base::value_type;
-    using base::elt_pointer;
-    using base::map_pointer;
+    using value_type = typename base::value_type;
+    using elt_pointer = typename base::elt_pointer;
+    using map_pointer = typename base::map_pointer;
 
     typedef _Alloc elt_allocator_type;
     typedef std::allocator_traits<elt_allocator_type> elt_alloc_traits;
@@ -54,12 +54,15 @@ template <typename _Tp, typename _Alloc> struct deque_impl
 };
 
 template <typename _Tp, typename _Alloc> struct deque_base {
-    typedef _Alloc elt_allocator_type;
     typedef deque_base<_Tp, _Alloc> self;
-    typedef deque_impl<value_type, elt_allocator_type> data_type;
-    typedef std::allocator_traits<_Alloc> elt_alloc_traits;
+    typedef deque_impl<_Tp, _Alloc> data_type;
     typedef typename data_type::value_type value_type;
-    
+    typedef typename data_type::elt_pointer elt_pointer;
+    typedef typename data_type::map_pointer map_pointer;
+    typedef typename data_type::elt_allocator_type elt_allocator_type;
+    typedef typename data_type::elt_alloc_traits elt_alloc_traits;
+    typedef typename data_type::map_allocator_type map_allocator_type;
+    typedef typename data_type::map_alloc_traits map_alloc_traits;
     
     deque_base() : _data() { _M_initialize_map(0); }
     deque_base(size_type _num_elts) : _data() { _M_initialize_map(_num_elts); }
