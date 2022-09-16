@@ -295,13 +295,6 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     }
 
     data_type _data;
-private:
-    data_type _M_move_data() {
-        if (!this->_data._map) {
-            return std::move(_data);
-        }
-        elt_allocator_type _alloc(_M_get_elt_allocator());
-    }
 };
 
 template <typename _Tp, typename _Alloc> const size_type deque_base<_Tp, _Alloc>::_S_initial_map_size = 8;
