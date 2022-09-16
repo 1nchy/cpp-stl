@@ -221,7 +221,12 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     deque_base() : _data() { _M_initialize_map(0); }
     deque_base(size_type _num_elts) : _data() { _M_initialize_map(_num_elts); }
     deque_base(const elt_allocator_type& _a, size_type _num_elts = 0) : _data(_a) { _M_initialize_map(_num_elts); }
-    deque_base(self&& _x) : _data(_x._M_move_data()) {}
+    deque_base(self&& _x) : _data(std::move(_x._M_get_elt_allocator())) {
+        _M_initialize_map(0);
+        if (_x._data._map) {
+            _x._data.swap_data(_x._data);
+        }
+    }
     deque_base(self&& _x, const elt_allocator_type& _a, size_type _n) : _data(_x._M_move_data()) {
         if (_x._M_get_elt_allocator() == _a) {
             if (_x._data._map) {
@@ -235,7 +240,8 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     }
     ~deque_base() {
         if (this->_data._map) {
-            // _M_destory_nodes(this->_data._start)
+            _M_destory_nodes(this->_data._start._node, this->_data._finish._node + 1);
+            _M_deallocate_map(this->_data._map, this->_data._map_size);
         }
     }
 
@@ -291,7 +297,10 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     data_type _data;
 private:
     data_type _M_move_data() {
-
+        if (!this->_data._map) {
+            return std::move(_data);
+        }
+        elt_allocator_type _alloc(_M_get_elt_allocator());
     }
 };
 
