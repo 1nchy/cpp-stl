@@ -38,20 +38,17 @@ template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator {
 
     typedef deque_iterator self;
 
-    constexpr static size_type _S_buffer_size() {
-        return deque_buf_size(sizeof(_Tp));
-    }
+    elt_pointer _cur;
+    elt_pointer _first;
+    elt_pointer _last;
+    map_pointer _node;
 
-    elt_pointer _cur = nullptr;
-    elt_pointer _first = nullptr;
-    elt_pointer _last = nullptr;
-    map_pointer _node = nullptr;
-
-    deque_iterator() = default;
+    deque_iterator()
+     : _cur(), _first(), _last(), _node() {};
     deque_iterator(elt_pointer _x, map_pointer _y)
-     : _cur(_x), _first(*_y), _last(*_y + _S_buffer_size()), _node(_y) {}
-    deque_iterator(const deque_iterator& _x)
-     : _cur(_x._cur), _first(_x._first), _last(_x._last), _node(_x._node) {}
+     : _cur(_x), _first(*_y), _last(*_y + data_type::_S_buffer_size()), _node(_y) {}
+    // deque_iterator(const deque_iterator& _x)
+    //  : _cur(_x._cur), _first(_x._first), _last(_x._last), _node(_x._node) {}
     self& operator=(const deque_iterator& _x) {
         _cur = _x._cur; _first = _x._first; _last = _x._last; _node = _x._node;
         return *this;
@@ -91,15 +88,15 @@ template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator {
     }
     self& operator+=(difference_type _n) {
         const difference_type _offset = _n + (_cur - _first);
-        if (_offset >= 0 && _offset < difference_type(_S_buffer_size())) {
+        if (_offset >= 0 && _offset < difference_type(data_type::_S_buffer_size())) {
             _cur += _n;
         }
         else {
             const difference_type _node_offset = _offset > 0 ?
-                _offset / difference_type(_S_buffer_size()) :
-                -difference_type((_offset - 1) / _S_buffer_size()) - 1;
+                _offset / difference_type(data_type::_S_buffer_size()) :
+                -difference_type((_offset - 1) / data_type::_S_buffer_size()) - 1;
             _M_set_node(_node + _node_offset);
-            _cur = _first + (_offset - _node_offset * difference_type(_S_buffer_size()));
+            _cur = _first + (_offset - _node_offset * difference_type(data_type::_S_buffer_size()));
         }
         return *this;
     }
@@ -122,7 +119,7 @@ template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator {
     }
     
     friend difference_type operator-(const self& _x, const self& _y) {
-        return difference_type(_S_buffer_size()) * (_x._node - _y._node - 1)
+        return difference_type(data_type::_S_buffer_size()) * (_x._node - _y._node - 1)
          + (_x._cur - _x._first) + (_y._last - _y._cur);
     }
     friend self operator-(const self& _x, difference_type _n) {
@@ -142,7 +139,7 @@ template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator {
     void _M_set_node(map_pointer _new_node) {
         _node = _new_node;
         _first = *_node;
-        _last = _first + difference_type(_S_buffer_size());
+        _last = _first + difference_type(data_type::_S_buffer_size());
     }
 };
 
@@ -157,14 +154,18 @@ template <typename _Tp> struct deque_data {
 
     typedef deque_data<_Tp> self;
 
-    map_pointer _map = nullptr;
+    map_pointer _map;
     size_type _map_size = 0;
-    iterator _start = nullptr;
-    iterator _finish = nullptr;
+    iterator _start;
+    iterator _finish;
 
-    deque_data() = default;
+    deque_data() : _map(), _map_size(0), _start(), _finish() {};
     deque_data(self&& _d) = default;
     virtual ~deque_data() = default;
+
+    constexpr static size_type _S_buffer_size() {
+        return deque_buf_size(sizeof(_Tp));
+    }
 
     void swap_data(self&& _x) {
         using std::swap;
@@ -182,6 +183,8 @@ template <typename _Tp, typename _Alloc> struct deque_impl
     using value_type = typename base::value_type;
     using elt_pointer = typename base::elt_pointer;
     using map_pointer = typename base::map_pointer;
+    using iterator = typename base::iterator;
+    using const_iterator = typename base::const_iterator;
 
     typedef _Alloc elt_allocator_type;
     typedef std::allocator_traits<elt_allocator_type> elt_alloc_traits;
@@ -199,6 +202,7 @@ template <typename _Tp, typename _Alloc> struct deque_impl
     using base::_start;
     using base::_finish;
     using base::swap_data;
+    using base::_S_buffer_size;
 };
 
 template <typename _Tp, typename _Alloc> struct deque_base {
@@ -235,10 +239,11 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     constexpr static const size_type _S_initial_map_size = 8;
 
 
-    elt_allocator_type& _M_get_elt_allocator() { return *static_cast<elt_allocator_type>(&this->_data); }
-    const elt_allocator_type& _M_get_elt_allocator() const { return *static_cast<elt_allocator_type>(&this->_data); }
+    elt_allocator_type& _M_get_elt_allocator() { return *static_cast<elt_allocator_type*>(&this->_data); }
+    const elt_allocator_type& _M_get_elt_allocator() const { return *static_cast<const elt_allocator_type*>(&this->_data); }
     map_allocator_type _M_get_map_allocator() const { return map_allocator_type(_M_get_elt_allocator()); }
 
+    // node is a basic storage unit of @deque
     elt_pointer _M_allocate_node() {
         return elt_alloc_traits::allocate(_data, deque_buf_size(sizeof(value_type)));
     }
@@ -255,13 +260,31 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     }
 
     void _M_initialize_map(size_type _num_elts) {
+        const size_type _num_nodes = (_num_elts / data_type::_S_buffer_size()) + 1;
+        this->_data._map_size = std::max(self::_S_initial_map_size, _num_nodes + 2);
+        this->_data._map = _M_allocate_map(this->_data._map_size);
 
+        map_pointer _nstart = this->_data._map + (this->_data._map_size - _num_nodes) / 2;
+        map_pointer _nfinish = _nstart + _num_nodes;
+
+        _M_create_nodes(_nstart, _nfinish);
+
+        this->_data._start._M_set_node(_nstart);
+        this->_data._finish._M_set_node(_nfinish - 1);
+        this->_data._start._cur = this->_data._start._first;
+        this->_data._finish._cur = this->_data._finish._first + _num_elts % data_type::_S_buffer_size();
     }
     void _M_create_nodes(map_pointer _start, map_pointer _finish) {
-
+        map_pointer _cur;
+        for (_cur = _start; _cur != _finish; ++_cur) {
+            *_cur = this->_M_allocate_node();
+        }
     }
     void _M_destory_nodes(map_pointer _start, map_pointer _finish) {
-
+        map_pointer _cur;
+        for (_cur = _start; _cur != _finish; ++_cur) {
+            this->_M_deallocate_node(*_cur);
+        }
     }
 
     data_type _data;
