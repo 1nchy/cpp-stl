@@ -8,6 +8,7 @@
 namespace asp {
 
 #ifndef _ASP_DEQUE_BUF_SIZE
+// Bit size of one node
 #define _ASP_DEQUE_BUF_SIZE 512
 #endif
 
@@ -15,7 +16,8 @@ template <typename _Tp> struct deque_data;
 template <typename _Tp, typename _Alloc = std::allocator<_Tp>> struct deque_impl;
 template <typename _Tp, typename _Alloc = std::allocator<_Tp>> struct deque_base;
 
-template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator;
+// not only an iterator, but also sentinel of deque_base
+template <typename _Tp, typename _Ref = _Tp&, typename _Ptr = _Tp*> struct deque_iterator;
 
 inline size_type deque_buf_size(size_type _size) {
     return _size < _ASP_DEQUE_BUF_SIZE ?
@@ -26,17 +28,128 @@ inline size_type deque_buf_size(size_type _size) {
 template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator {
     typedef deque_data<_Tp> data_type;
     using value_type = typename data_type::value_type;
+    using pointer = typename data_type::pointer;
+    using reference = typename data_type::reference;
     using elt_pointer = typename data_type::elt_pointer;
     using map_pointer = typename data_type::map_pointer;
 
-    elt_pointer _cur;
-    elt_pointer _first;
-    elt_pointer _last;
-    map_pointer _node;
+    using iterator = typename data_type::iterator;
+    using const_iterator = typename data_type::const_iterator;
+
+    typedef deque_iterator self;
+
+    constexpr static size_type _S_buffer_size() {
+        return deque_buf_size(sizeof(_Tp));
+    }
+
+    elt_pointer _cur = nullptr;
+    elt_pointer _first = nullptr;
+    elt_pointer _last = nullptr;
+    map_pointer _node = nullptr;
+
+    deque_iterator() = default;
+    deque_iterator(elt_pointer _x, map_pointer _y)
+     : _cur(_x), _first(*_y), _last(*_y + _S_buffer_size()), _node(_y) {}
+    deque_iterator(const deque_iterator& _x)
+     : _cur(_x._cur), _first(_x._first), _last(_x._last), _node(_x._node) {}
+    self& operator=(const deque_iterator& _x) {
+        _cur = _x._cur; _first = _x._first; _last = _x._last; _node = _x._node;
+        return *this;
+    }
+    // conversion from iterator to const_iterator
+    deque_iterator(const iterator& _x)
+     : _cur(_x._cur), _first(_x._first), _last(_x._last), _node(_x._node) {}
+
+    iterator _M_const_cast() const { return iterator(_cur, _node); }
+    reference operator*() const { return *_cur; }
+    pointer operator->() const { return _cur; }
+    self& operator++() {
+        ++_cur;
+        if (_cur == _last) {
+            _M_set_node(_node + 1);
+            _cur = _first;
+        }
+        return *this;
+    }
+    self operator++(int) {
+        self _tmp = *this;
+        ++*this;
+        return _tmp;
+    }
+    self& operator--() {
+        if (_cur == _first) {
+            _M_set_node(_node - 1);
+            _cur = _last;
+        }
+        --_cur;
+        return *this;
+    }
+    self operator--(int) {
+        self _tmp = *this;
+        --*this;
+        return _tmp;
+    }
+    self& operator+=(difference_type _n) {
+        const difference_type _offset = _n + (_cur - _first);
+        if (_offset >= 0 && _offset < difference_type(_S_buffer_size())) {
+            _cur += _n;
+        }
+        else {
+            const difference_type _node_offset = _offset > 0 ?
+                _offset / difference_type(_S_buffer_size()) :
+                -difference_type((_offset - 1) / _S_buffer_size()) - 1;
+            _M_set_node(_node + _node_offset);
+            _cur = _first + (_offset - _node_offset * difference_type(_S_buffer_size()));
+        }
+        return *this;
+    }
+    self& operator-=(difference_type _n) {
+        return *this += -_n;
+    }
+    friend bool operator==(const self& _x, const self& _y) {
+        return _x._cur == _y._cur;
+    }
+    template <typename _RefR, typename _PtrR> friend bool
+     operator==(const self& _x, const deque_iterator<_Tp, _RefR, _PtrR>& _y) {
+        return _x._cur == _y._cur;
+    }
+    friend bool operator!=(const self& _x, const self& _y) {
+        return !(_x == _y);
+    }
+    template <typename _RefR, typename _PtrR> friend bool
+     operator!=(const self& _x, const deque_iterator<_Tp, _RefR, _PtrR>& _y) {
+        return !(_x == _y);
+    }
+    
+    friend difference_type operator-(const self& _x, const self& _y) {
+        return difference_type(_S_buffer_size()) * (_x._node - _y._node - 1)
+         + (_x._cur - _x._first) + (_y._last - _y._cur);
+    }
+    friend self operator-(const self& _x, difference_type _n) {
+        self _tmp = _x;
+        _tmp -= _n;
+        return _tmp;
+    }
+    friend self operator+(const self& _x, difference_type _n) {
+        self _tmp = _x;
+        _tmp += _n;
+        return _tmp;
+    }
+    friend self operator+(difference_type _n, const self& _x) {
+        return _x + _n;
+    }
+
+    void _M_set_node(map_pointer _new_node) {
+        _node = _new_node;
+        _first = *_node;
+        _last = _first + difference_type(_S_buffer_size());
+    }
 };
 
 template <typename _Tp> struct deque_data {
     typedef _Tp value_type;
+    typedef _Tp* pointer;
+    typedef _Tp& reference;
     typedef _Tp* elt_pointer;
     typedef _Tp** map_pointer;
     typedef deque_iterator<_Tp, _Tp&, _Tp*> iterator;
