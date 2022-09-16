@@ -215,6 +215,8 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     typedef typename data_type::elt_alloc_traits elt_alloc_traits;
     typedef typename data_type::map_allocator_type map_allocator_type;
     typedef typename data_type::map_alloc_traits map_alloc_traits;
+
+    static const size_type _S_initial_map_size;
     
     deque_base() : _data() { _M_initialize_map(0); }
     deque_base(size_type _num_elts) : _data() { _M_initialize_map(_num_elts); }
@@ -236,7 +238,6 @@ template <typename _Tp, typename _Alloc> struct deque_base {
             // _M_destory_nodes(this->_data._start)
         }
     }
-    constexpr static const size_type _S_initial_map_size = 8;
 
 
     elt_allocator_type& _M_get_elt_allocator() { return *static_cast<elt_allocator_type*>(&this->_data); }
@@ -261,7 +262,7 @@ template <typename _Tp, typename _Alloc> struct deque_base {
 
     void _M_initialize_map(size_type _num_elts) {
         const size_type _num_nodes = (_num_elts / data_type::_S_buffer_size()) + 1;
-        this->_data._map_size = std::max(self::_S_initial_map_size, _num_nodes + 2);
+        this->_data._map_size = std::max(_S_initial_map_size, _num_nodes + 2);
         this->_data._map = _M_allocate_map(this->_data._map_size);
 
         map_pointer _nstart = this->_data._map + (this->_data._map_size - _num_nodes) / 2;
@@ -293,6 +294,8 @@ private:
 
     }
 };
+
+template <typename _Tp, typename _Alloc> const size_type deque_base<_Tp, _Alloc>::_S_initial_map_size = 8;
 
 };
 
