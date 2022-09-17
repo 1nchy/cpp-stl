@@ -27,9 +27,9 @@ inline size_type deque_buf_size(size_type _size) {
 
 template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator {
     typedef deque_data<_Tp> data_type;
-    using value_type = typename data_type::value_type;
-    using pointer = typename data_type::pointer;
-    using reference = typename data_type::reference;
+    typedef _Tp value_type;
+    typedef _Ref pointer;
+    typedef _Ptr reference;
     using elt_pointer = typename data_type::elt_pointer;
     using map_pointer = typename data_type::map_pointer;
 
@@ -181,6 +181,8 @@ template <typename _Tp, typename _Alloc> struct deque_impl
     typedef deque_data<_Tp> base;
     typedef deque_impl<_Tp, _Alloc> self;
     using value_type = typename base::value_type;
+    using pointer = typename base::pointer;
+    using reference = typename base::reference;
     using elt_pointer = typename base::elt_pointer;
     using map_pointer = typename base::map_pointer;
     using iterator = typename base::iterator;
@@ -209,12 +211,16 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     typedef deque_base<_Tp, _Alloc> self;
     typedef deque_impl<_Tp, _Alloc> data_type;
     typedef typename data_type::value_type value_type;
+    typedef typename data_type::pointer pointer;
+    typedef typename data_type::reference reference;
     typedef typename data_type::elt_pointer elt_pointer;
     typedef typename data_type::map_pointer map_pointer;
     typedef typename data_type::elt_allocator_type elt_allocator_type;
     typedef typename data_type::elt_alloc_traits elt_alloc_traits;
     typedef typename data_type::map_allocator_type map_allocator_type;
     typedef typename data_type::map_alloc_traits map_alloc_traits;
+    typedef typename data_type::iterator iterator;
+    typedef typename data_type::const_iterator const_iterator;
 
     static const size_type _S_initial_map_size;
     
@@ -240,11 +246,14 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     }
     ~deque_base() {
         if (this->_data._map) {
-            _M_destory_nodes(this->_data._start._node, this->_data._finish._node + 1);
+            _M_deallocate_nodes(this->_data._start._node, this->_data._finish._node + 1);
             _M_deallocate_map(this->_data._map, this->_data._map_size);
         }
     }
 
+    constexpr static size_type _S_buffer_size() {
+        return deque_buf_size(sizeof(_Tp));
+    }
 
     elt_allocator_type& _M_get_elt_allocator() { return *static_cast<elt_allocator_type*>(&this->_data); }
     const elt_allocator_type& _M_get_elt_allocator() const { return *static_cast<const elt_allocator_type*>(&this->_data); }
@@ -257,37 +266,47 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     void _M_deallocate_node(elt_pointer _p) {
         elt_alloc_traits::deallocate(_data, _p, deque_buf_size(sizeof(value_type)));
     }
+    void _M_construct_node(elt_pointer _p, const value_type& _x) {
+        elt_alloc_traits::construct(_data, _p, _x);
+    }
+    template <typename... _Args> void _M_construct_node(elt_pointer _p, _Args&&... _args) {
+        elt_alloc_traits::construct(_data, _p, std::forward<_Args>(_args)...);
+    }
+    void _M_destory_node(elt_pointer _p) {
+        elt_alloc_traits::destory(_data, _p);
+    }
+
     map_pointer _M_allocate_map(size_type _n) {
-        map_allocator_type _map_data = _M_get_map_allocator();
-        return map_alloc_traits::allocate(_map_data, _n);
+        map_allocator_type _map_alloc = _M_get_map_allocator();
+        return map_alloc_traits::allocate(_map_alloc, _n);
     }
     void _M_deallocate_map(map_pointer _p, size_type _n) {
-        map_allocator_type _map_data = _M_get_map_allocator();
-        map_alloc_traits::deallocate(_map_data, _p, _n);
+        map_allocator_type _map_alloc = _M_get_map_allocator();
+        map_alloc_traits::deallocate(_map_alloc, _p, _n);
     }
 
     void _M_initialize_map(size_type _num_elts) {
-        const size_type _num_nodes = (_num_elts / data_type::_S_buffer_size()) + 1;
+        const size_type _num_nodes = (_num_elts / _S_buffer_size()) + 1;
         this->_data._map_size = std::max(_S_initial_map_size, _num_nodes + 2);
         this->_data._map = _M_allocate_map(this->_data._map_size);
 
         map_pointer _nstart = this->_data._map + (this->_data._map_size - _num_nodes) / 2;
         map_pointer _nfinish = _nstart + _num_nodes;
 
-        _M_create_nodes(_nstart, _nfinish);
+        _M_allocate_nodes(_nstart, _nfinish);
 
         this->_data._start._M_set_node(_nstart);
         this->_data._finish._M_set_node(_nfinish - 1);
         this->_data._start._cur = this->_data._start._first;
-        this->_data._finish._cur = this->_data._finish._first + _num_elts % data_type::_S_buffer_size();
+        this->_data._finish._cur = this->_data._finish._first + _num_elts % _S_buffer_size();
     }
-    void _M_create_nodes(map_pointer _start, map_pointer _finish) {
+    void _M_allocate_nodes(map_pointer _start, map_pointer _finish) {
         map_pointer _cur;
         for (_cur = _start; _cur != _finish; ++_cur) {
             *_cur = this->_M_allocate_node();
         }
     }
-    void _M_destory_nodes(map_pointer _start, map_pointer _finish) {
+    void _M_deallocate_nodes(map_pointer _start, map_pointer _finish) {
         map_pointer _cur;
         for (_cur = _start; _cur != _finish; ++_cur) {
             this->_M_deallocate_node(*_cur);
