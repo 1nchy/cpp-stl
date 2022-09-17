@@ -1,7 +1,7 @@
 #ifndef  _ASP_DEQUE_HPP_
 #define _ASP_DEQUE_HPP_
 
-#include <memory>
+#include <ostream>
 
 #include "deque_base.hpp"
 
@@ -68,6 +68,38 @@ template <typename _Tp, typename _Alloc> class deque : public deque_base<_Tp, _A
     /// capacity
     size_type size() const { return this->_data._finish - this->_data._start; }
     bool empty() const { return this->_data._finish == this->_data._start; }
+    void shrink_to_fit();
+
+
+    /// modifiers
+    void push_back(const value_type& _x) {}
+    void push_back(value_type&& _x) {}
+    void pop_back() {}
+    void push_front(const value_type& _x) {}
+    void push_front(value_type&& _x) {}
+    void pop_front() {}
+    template <typename... _Args> iterator emplace(const_iterator _pos, _Args&&... _args) {}
+    template <typename... _Args> void emplace_back(_Args&&... _args) {}
+    template <typename... _Args> void emplate_front(_Args&&... _args) {}
+    iterator insert(const_iterator _pos, const value_type& _e) {}
+    template <typename _InputIterator> iterator insert(const_iterator _pos, _InputIterator _first, _InputIterator _last) {}
+    iterator erase(const_iterator _pos) {}
+    iterator erase(const_iterator _first, const_iterator _last) {}
+    void clear() {}
+
+
+    /// ostream
+    template <typename _R> friend std::ostream& operator<<(std::ostream& os, const deque<_R>& d) {
+        os << '[';
+        for (auto p = d.cbegin(); p != d.cend(); ++p) {
+            os << *p;
+            if (p + 1 != d.cend()) {
+                os << ", ";
+            }
+        }
+        os << ']';
+        return os;
+    }
 };
 
 };
