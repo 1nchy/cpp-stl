@@ -20,6 +20,9 @@ template <typename _Tp, typename _Alloc> class deque : public deque_base<_Tp, _A
     using elt_allocator_type = typename base::elt_allocator_type;
     using map_allocator_type = typename base::map_allocator_type;
 
+    using iterator = typename base::iterator;
+    using const_iterator = typename base::const_iterator;
+
     using base::_data;
 
     deque() : base() {}
@@ -30,9 +33,41 @@ template <typename _Tp, typename _Alloc> class deque : public deque_base<_Tp, _A
     deque(self&& _x) : base(std::move(_x)) {}
     ~deque() = default;
 
+    self& operator=(const deque& _x);
+    self& operator=(deque&& _x);
 
 
-    size_type size() const { return size_type(0); }
+    /// element access
+    reference operator[](size_type _i) {
+        return *(this->_data._start + difference_type(_i));
+    }
+    const reference operator[](size_type _i) const {
+        return *(this->_data._start + difference_type(_i));
+    }
+    reference front() { return *begin(); }
+    const reference front() const { return *cbegin(); }
+    reference back() {
+        iterator _tmp = end();
+        --_tmp;
+        return *_tmp;
+    }
+    const reference back() const {
+        const_iterator _tmp = end();
+        --_tmp;
+        return *_tmp;
+    }
+
+
+    /// iterator
+    iterator begin() { return this->_data._start; }
+    const_iterator cbegin() const { return this->_data._start; }
+    iterator end() { return this->_data._finish; }
+    const_iterator cend() const { return this->_data._finish; }
+
+
+    /// capacity
+    size_type size() const { return this->_data._finish - this->_data._start; }
+    bool empty() const { return this->_data._finish == this->_data._start; }
 };
 
 };
