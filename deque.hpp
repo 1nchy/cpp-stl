@@ -126,17 +126,71 @@ protected:
     // to make sure at least %_nodes_to_add nodes exist at back
     void _M_reserve_map_at_back(size_type _nodes_to_add = 1) {
         if (_nodes_to_add + 1 > size_type(this->_data._map_size - (this->_data._finish._node - this->_data._map))) {
-            _M_reallocate_map();
+            _M_reallocate_map_at_back(_nodes_to_add);
         }
     }
     // to make sure at least %_nodes_to_add nodes exist at front
     void _M_reserve_map_at_front(size_type _nodes_to_add = 1) {
         if (_nodes_to_add > size_type(this->_data._start._node - this->_data._map)) {
-            _M_reallocate_map();
+            _M_reallocate_map_at_front(_nodes_to_add);
         }
     }
-    void _M_reallocate_map() {
-
+    void _M_reallocate_map_at_back(size_type _nodes_to_add) {
+        const size_type _old_num_nodes = this->_data._finish._node - this->_data._start._node + 1;
+        const size_type _new_num_nodes = _old_num_nodes + _nodes_to_add;
+        map_pointer _new_nstart;
+        // double the storage space, just like %vector
+        if (this->_data._map_size > 2 * _new_num_nodes) {
+            /*
+            * @proof:
+            * as known: %_map_size \gt  2*(%_new_num_nodes) = 2*(%_old_num_nodes + %_nodes_to_add)
+            * noticed: %_map_size - (%_map_size - %_new_num_nodes) / 2 > %_nodes_to_add
+            * so, there is enough storage space after {%_new_start + %_new_num_nodes}
+            */
+            _new_nstart = this->_data._map + (this->_data._map_size - _new_num_nodes) / 2;
+            if (_new_nstart < this->_data._start._node) {
+                std::copy(this->_data._start._node, this->_data._finish._node + 1, _new_nstart);
+            }
+            else {
+                std::copy_backward(this->_data._start._node, this->_data._finish._node + 1, _new_nstart + _old_num_nodes);
+            }
+        }
+        else {
+            size_type _new_map_size = this->_data._map_size + (std::max(this->_data._map_size, _nodes_to_add)) + 2;
+            map_pointer _new_map = this->_M_allocate_map(_new_map_size);
+            _new_nstart = this->_data._map + (_new_map_size - _new_num_nodes) / 2;
+            std::copy(this->_data._start._node, this->_data._finish._node + 1, _new_nstart);
+            this->_M_deallocate_map(this->_data._map, this->_data._map_size);
+            this->_data._map = _new_map;
+            this->_data._map_size = _new_map_size;
+        }
+        this->_data._start._M_set_node(_new_nstart);
+        this->_data._finish._M_set_node(_new_nstart + _old_num_nodes - 1);
+    }
+    void _M_reallocate_map_at_front(size_type _nodes_to_add) {
+        const size_type _old_num_nodes = this->_data._finish._node - this->_data._start._node + 1;
+        const size_type _new_num_nodes = _old_num_nodes + _nodes_to_add;
+        map_pointer _new_nstart;
+        if (this->_data._map_size > 2 * _new_num_nodes) {
+            _new_nstart = this->_data._map + (this->_data._map_size - _new_num_nodes) / 2 + _nodes_to_add;
+            if (_new_nstart < this->_data._start._node) {
+                std::copy(this->_data._start._node, this->_data._finish._node + 1, _new_nstart);
+            }
+            else {
+                std::copy_backward(this->_data._start._node, this->_data._finish._node, _new_nstart + _old_num_nodes);
+            }
+        }
+        else {
+            size_type _new_map_size = this->_data._map_size + (std::max(this->_data._map_size, _nodes_to_add)) + 2;
+            map_pointer _new_map = this->_M_allocate_map(_new_map_size);
+            _new_nstart = this->_data._map + (_new_map_size - _new_num_nodes) / 2 + _nodes_to_add;
+            std::copy(this->_data._start._node, this->_data._finish._node + 1, _new_nstart);
+            this->_M_deallocate_map(this->_data._map, this->_data._map_size);
+            this->_data._map = _new_map;
+            this->_data._map_size = _new_map_size;
+        }
+        this->_data._first._M_set_node(_new_nstart);
+        this->_data._finish._M_set_node(_new_nstart + _new_num_nodes - 1);
     }
 
     template <typename... _Args> void _M_alloc_push_back(_Args&&... _args) {

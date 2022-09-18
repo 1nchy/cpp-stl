@@ -284,6 +284,14 @@ template <typename _Tp, typename _Alloc> struct deque_base {
         map_allocator_type _map_alloc = _M_get_map_allocator();
         map_alloc_traits::deallocate(_map_alloc, _p, _n);
     }
+    void _M_destory_map(map_pointer _p) {
+        map_allocator_type _map_alloc = _M_get_map_allocator();
+        map_alloc_traits::destory(_map_alloc, _p);
+    }
+    void _M_destory_map(map_pointer _first, map_pointer _last) {
+        map_allocator_type _map_alloc = _M_get_map_allocator();
+        std::_Destroy(_first, _last, _map_alloc);
+    }
 
     void _M_initialize_map(size_type _num_elts) {
         const size_type _num_nodes = (_num_elts / _S_buffer_size()) + 1;
