@@ -88,10 +88,10 @@ public:
     void pop_back() {
         if (this->_data._finish._cur != this->_data._finish._first) {
             --this->_data._finish._cur;
-            this->_M_destory_node(this->_data._finish_cur);
+            this->_M_destroy_node(this->_data._finish._cur);
         }
         else {
-
+            _M_pop_back_aux();
         }
     }
     void push_front(const value_type& _x) {}
@@ -205,7 +205,16 @@ protected:
         this->_data._finish._M_set_node(this->_data._finish._node + 1);
         this->_data._finish._cur = this->_data._finish._first;
     }
-    
+    /*
+    * @brief: pop the element on the back, which need to reallocate the memory.
+    * @invoke: only when {%_data._finish._cur == %_data._finish._first}
+    */
+    void _M_pop_back_aux() {
+        this->_M_deallocate_node(this->_data._finish._first);
+        this->_data._finish._M_set_node(this->_data._finish._node - 1);
+        this->_data._finish._cur = this->_data._finish._last - 1;
+        this->_M_destroy_node(this->_data._finish._cur);
+    }
 };
 
 };

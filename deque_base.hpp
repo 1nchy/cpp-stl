@@ -272,8 +272,8 @@ template <typename _Tp, typename _Alloc> struct deque_base {
     template <typename... _Args> void _M_construct_node(elt_pointer _p, _Args&&... _args) {
         elt_alloc_traits::construct(_data, _p, std::forward<_Args>(_args)...);
     }
-    void _M_destory_node(elt_pointer _p) {
-        elt_alloc_traits::destory(_data, _p);
+    void _M_destroy_node(elt_pointer _p) {
+        elt_alloc_traits::destroy(_data, _p);
     }
 
     map_pointer _M_allocate_map(size_type _n) {
