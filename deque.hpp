@@ -11,6 +11,7 @@ template <typename _Tp, typename _Alloc = std::allocator<_Tp>> class deque;
 
 template <typename _Tp, typename _Alloc> class deque : public deque_base<_Tp, _Alloc> {
     typedef deque_base<_Tp, _Alloc> base;
+public:
     typedef deque<_Tp, _Alloc> self;
     using value_type = typename base::value_type;
     using pointer = typename base::pointer;
@@ -78,7 +79,7 @@ template <typename _Tp, typename _Alloc> class deque : public deque_base<_Tp, _A
             ++this->_data._finish;
         }
         else {
-            _M_alloc_push_back(_x);
+            _M_push_back_aux(_x);
         }
     }
     void push_back(value_type&& _x) {
@@ -193,8 +194,16 @@ protected:
         this->_data._finish._M_set_node(_new_nstart + _new_num_nodes - 1);
     }
 
-    template <typename... _Args> void _M_alloc_push_back(_Args&&... _args) {
-
+    /*
+    * @brief: push the element to the back, which need to reallocate the memory.
+    * @invoke: only when {%_data._finish._cur == %_data._finish._last - 1}
+    */
+    template <typename... _Args> void _M_push_back_aux(_Args&&... _args) {
+        _M_reserve_map_at_back();
+        *(this->_data._finish._node + 1) = this->_M_allocate_node();
+        this->_M_construct_node(this->_data._finish._cur, std::forward<_Args>(_args)...);
+        this->_data._finish._M_set_node(this->_data._finish._node + 1);
+        this->_data._finish._cur = this->_data._finish._first;
     }
     
 };

@@ -28,8 +28,8 @@ inline size_type deque_buf_size(size_type _size) {
 template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator {
     typedef deque_data<_Tp> data_type;
     typedef _Tp value_type;
-    typedef _Ref pointer;
-    typedef _Ptr reference;
+    typedef _Ref reference;
+    typedef _Ptr pointer;
     using elt_pointer = typename data_type::elt_pointer;
     using map_pointer = typename data_type::map_pointer;
 
