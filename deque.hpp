@@ -116,8 +116,24 @@ public:
         }
     }
     template <typename... _Args> iterator emplace(const_iterator _pos, _Args&&... _args) {}
-    template <typename... _Args> void emplace_back(_Args&&... _args) {}
-    template <typename... _Args> void emplace_front(_Args&&... _args) {}
+    template <typename... _Args> void emplace_back(_Args&&... _args) {
+        if (this->_data._finish._cur != this->_data._finish._last - 1) {
+            this->_M_construct_node(this->_data._finish._cur, std::forward<_Args>(_args)...);
+            ++this->_data._finish;
+        }
+        else {
+            _M_push_back_aux(std::forward<_Args>(_args)...);
+        }
+    }
+    template <typename... _Args> void emplace_front(_Args&&... _args) {
+        if (this->_data._start._cur != this->_data._start._first) {
+            --this->_data._start;
+            this->_M_construct_node(this->_data._start._cur, std::forward<_Args>(_args)...);
+        }
+        else {
+            _M_push_front_aux(std::forward<_Args>(_args)...);
+        }
+    }
     iterator insert(const_iterator _pos, const value_type& _e) {}
     template <typename _InputIterator> iterator insert(const_iterator _pos, _InputIterator _first, _InputIterator _last) {}
     iterator erase(const_iterator _pos) {}
