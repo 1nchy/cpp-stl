@@ -310,7 +310,7 @@ protected:
             _pos = this->_data._start + _index;
             iterator _pos1 = _pos;
             ++_pos1;
-            asp::_A_uninitialized_copy_a(_old_2rd_front, _pos1, _old_front, this->_data);
+            asp::_A_copy(_old_2rd_front, _pos1, _old_front, this->_data);
         }
         else {
             push_back(std::move(back()));
@@ -319,7 +319,7 @@ protected:
             iterator _old_2rd_finish = _old_finish;
             --_old_2rd_finish;
             _pos = this->_data._start + _index;
-            asp::_A_uninitialized_copy_a(_pos, _old_2rd_finish, _old_finish, this->_data);
+            asp::_A_copy(_pos, _old_2rd_finish, _old_finish, this->_data);
         }
         *_pos = _x_copy;
         return _pos;
