@@ -94,11 +94,27 @@ public:
             _M_pop_back_aux();
         }
     }
-    void push_front(const value_type& _x) {}
+    void push_front(const value_type& _x) {
+        if (this->_data._start._cur != this->_data._start._first) {
+            --this->_data._start;
+            this->_M_construct_node(this->_data._start._cur, _x);
+        }
+        else {
+            _M_push_front_aux(_x);
+        }
+    }
     void push_front(value_type&& _x) {
         emplace_front(std::move(_x));
     }
-    void pop_front() {}
+    void pop_front() {
+        if (this->_data._start._cur != this->_data._start._last - 1) {
+            this->_M_destroy_node(this->_data._start._cur);
+            ++this->_data._start;
+        }
+        else {
+            _M_pop_front_aux();
+        }
+    }
     template <typename... _Args> iterator emplace(const_iterator _pos, _Args&&... _args) {}
     template <typename... _Args> void emplace_back(_Args&&... _args) {}
     template <typename... _Args> void emplace_front(_Args&&... _args) {}
@@ -190,7 +206,7 @@ protected:
             this->_data._map = _new_map;
             this->_data._map_size = _new_map_size;
         }
-        this->_data._first._M_set_node(_new_nstart);
+        this->_data._start._M_set_node(_new_nstart);
         this->_data._finish._M_set_node(_new_nstart + _new_num_nodes - 1);
     }
 
@@ -206,7 +222,7 @@ protected:
         this->_data._finish._cur = this->_data._finish._first;
     }
     /*
-    * @brief: pop the element on the back, which need to reallocate the memory.
+    * @brief: pop the element on the back, which need to deallocate the memory.
     * @invoke: only when {%_data._finish._cur == %_data._finish._first}
     */
     void _M_pop_back_aux() {
@@ -214,6 +230,27 @@ protected:
         this->_data._finish._M_set_node(this->_data._finish._node - 1);
         this->_data._finish._cur = this->_data._finish._last - 1;
         this->_M_destroy_node(this->_data._finish._cur);
+    }
+    /*
+    * @brief: push the element to the front, which need to reallocate the memory.
+    * @invoke: only when {%_data._start._cur == %_data._start._first}
+    */
+    template <typename... _Args> void _M_push_front_aux(_Args&&... _args) {
+        _M_reserve_map_at_front();
+        *(this->_data._start._node - 1) = this->_M_allocate_node();
+        this->_data._start._M_set_node(this->_data._start._node - 1);
+        this->_data._start._cur = this->_data._start._last - 1;
+        this->_M_construct_node(this->_data._start._cur, std::forward<_Args>(_args)...);
+    }
+    /*
+    * @brief: pop the element on the front, which need to deallocate the memory.
+    * @invoke: only when {%_data._start._cur == %_data._start._last - 1}
+    */
+    void _M_pop_front_aux() {
+        this->_M_destroy_node(this->_data._start._cur);
+        this->_M_deallocate_node(this->_data._start._first);
+        this->_data._start._M_set_node(this->_data._start._node + 1);
+        this->_data._start._cur = this->_data._start._first;
     }
 };
 
