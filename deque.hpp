@@ -115,7 +115,21 @@ public:
             _M_pop_front_aux();
         }
     }
-    template <typename... _Args> iterator emplace(const_iterator _pos, _Args&&... _args) {}
+    template <typename... _Args> iterator emplace(const_iterator _pos, _Args&&... _args) {
+        if (_pos._cur == this->_data._start._cur) {
+            emplace_front(std::forward<_Args>(_args)...);
+            return this->_data._start;
+        }
+        else if (_pos._cur == this->_data._finish._cur) {
+            emplace_back(std::forward<_Args>(_args)...);
+            iterator _tmp = this->_data._finish;
+            --_tmp;
+            return _tmp;
+        }
+        else {
+            return _M_insert_aux(_pos._M_const_cast(), std::forward<_Args>(_args)...);
+        }
+    }
     template <typename... _Args> void emplace_back(_Args&&... _args) {
         if (this->_data._finish._cur != this->_data._finish._last - 1) {
             this->_M_construct_node(this->_data._finish._cur, std::forward<_Args>(_args)...);
@@ -134,7 +148,21 @@ public:
             _M_push_front_aux(std::forward<_Args>(_args)...);
         }
     }
-    iterator insert(const_iterator _pos, const value_type& _e) {}
+    iterator insert(const_iterator _pos, const value_type& _e) {
+        if (_pos._cur == this->_data._start._cur) {
+            push_front(_e);
+            return this->_data._start;
+        }
+        else if (_pos._cur == this->_data._finish._cur) {
+            push_back(_e);
+            iterator _tmp = this->_data._finish;
+            --_tmp;
+            return _tmp;
+        }
+        else {
+            return _M_insert_aux(_pos._M_const_cast(), _e);
+        }
+    }
     template <typename _InputIterator> iterator insert(const_iterator _pos, _InputIterator _first, _InputIterator _last) {}
     iterator erase(const_iterator _pos) {}
     iterator erase(const_iterator _first, const_iterator _last) {}
@@ -267,6 +295,10 @@ protected:
         this->_M_deallocate_node(this->_data._start._first);
         this->_data._start._M_set_node(this->_data._start._node + 1);
         this->_data._start._cur = this->_data._start._first;
+    }
+
+    template <typename... _Args> iterator _M_insert_aux(iterator _pos, _Args&&... _args) {
+
     }
 };
 
