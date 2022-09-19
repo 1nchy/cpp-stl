@@ -4,6 +4,7 @@
 #include <ostream>
 
 #include "deque_base.hpp"
+#include "memory.hpp"
 
 namespace asp {
 
@@ -298,7 +299,30 @@ protected:
     }
 
     template <typename... _Args> iterator _M_insert_aux(iterator _pos, _Args&&... _args) {
-
+        difference_type _index = _pos - this->_data._start;
+        value_type _x_copy(std::forward<_Args>(_args)...);
+        if (static_cast<size_type>(_index) < size() / 2) {
+            push_front(std::move(front()));
+            iterator _old_front = this->_data._start;
+            ++_old_front;
+            iterator _old_2rd_front = _old_front;
+            ++_old_2rd_front;
+            _pos = this->_data._start + _index;
+            iterator _pos1 = _pos;
+            ++_pos1;
+            asp::_A_uninitialized_copy_a(_old_2rd_front, _pos1, _old_front, this->_data);
+        }
+        else {
+            push_back(std::move(back()));
+            iterator _old_finish = this->_data._finish;
+            --_old_finish;
+            iterator _old_2rd_finish = _old_finish;
+            --_old_2rd_finish;
+            _pos = this->_data._start + _index;
+            asp::_A_uninitialized_copy_a(_pos, _old_2rd_finish, _old_finish, this->_data);
+        }
+        *_pos = _x_copy;
+        return _pos;
     }
 };
 

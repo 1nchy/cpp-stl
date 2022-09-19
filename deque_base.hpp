@@ -321,6 +321,8 @@ template <typename _Tp, typename _Alloc> struct deque_base {
         }
     }
 
+    
+
     data_type _data;
 };
 
