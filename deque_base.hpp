@@ -2,6 +2,7 @@
 #define _ASP_DEQUE_BASE_HPP_
 
 #include "basic_param.hpp"
+#include "memory.hpp"
 
 #include <memory>
 
@@ -321,7 +322,12 @@ template <typename _Tp, typename _Alloc> struct deque_base {
         }
     }
 
-    
+    iterator _M_range_copy(const_iterator _first, const_iterator _last, iterator _res) {
+        return asp::_A_copy(_first, _last, _res, _data);
+    }
+    iterator _M_range_copy_backward(const_iterator _first, const_iterator _last, iterator _res) {
+        return asp::_A_copy_backward(_first, _last, _res, _data);
+    }
 
     data_type _data;
 };

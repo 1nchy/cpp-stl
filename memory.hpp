@@ -19,9 +19,8 @@ template <typename _InputIterator, typename _BackwardIterator, typename _Allocat
 _BackwardIterator _A_copy_backward(_InputIterator _first, _InputIterator _last, _BackwardIterator _res, _Allocator& _a) {
     _BackwardIterator _cur = _res;
     typedef std::allocator_traits<_Allocator> _alloc_traits;
-    --_last; --_first;
-    for (; _first != _last; --_last, --_cur) {
-        _alloc_traits::construct(_a, std::addressof(*_cur), *_last);
+    while (_first != _last) {
+        _alloc_traits::construct(_a, std::addressof(*--_cur), *--_last);
     }
     return _cur;
 }
