@@ -40,6 +40,11 @@ public:
     typedef asp::difference_type difference_type;
 };
 
+template <typename _Iter> auto _A_iterator_category(const _Iter&)
+ -> typename asp::iterator_traits<_Iter>::iterator_category {
+    return typename asp::iterator_traits<_Iter>::iterator_category();
+};
+
 };
 
 #endif

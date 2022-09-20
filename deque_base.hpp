@@ -2,6 +2,7 @@
 #define _ASP_DEQUE_BASE_HPP_
 
 #include "basic_param.hpp"
+#include "iterator.hpp"
 #include "memory.hpp"
 
 #include <memory>
@@ -27,12 +28,12 @@ inline size_type deque_buf_size(size_type _size) {
 }
 
 template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator {
-    typedef asp::random_access_iterator_tag iterator_category;
+    typedef typename asp::random_access_iterator_tag iterator_category;
     typedef deque_data<_Tp> data_type;
     typedef _Tp value_type;
     typedef _Ref reference;
     typedef _Ptr pointer;
-    typedef asp::difference_type difference_type;
+    typedef typename asp::difference_type difference_type;
     using elt_pointer = typename data_type::elt_pointer;
     using map_pointer = typename data_type::map_pointer;
 
