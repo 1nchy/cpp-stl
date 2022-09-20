@@ -2,6 +2,7 @@
 #define _ASP_ITERATOR_HPP_
 
 #include "basic_param.hpp"
+#include "iterator_traits.hpp"
 
 namespace asp {
 template <typename _Tp, typename _Pointer, typename _Reference> struct base_iterator;
@@ -9,9 +10,11 @@ template <typename _Tp, typename _Pointer = _Tp*, typename _Reference = _Tp&> st
     // typedef typename _Tp value_type;
     // typedef typename _Pointer pointer;
     // typedef typename _Reference reference;
+    typedef asp::fixed_iterator iterator_category;
     using value_type = _Tp;
     using pointer = _Pointer;
     using reference = _Reference;
+    using difference_type = asp::difference_type;
     typedef base_iterator<_Tp> self;
 
     base_iterator() = default;
@@ -46,6 +49,7 @@ struct normal_iterator;
 
 template <typename _Tp> 
 struct normal_iterator : public base_iterator <_Tp> {
+    typedef asp::random_access_iterator_tag iterator_category;
     // typedef value_type = base_iterator<_Tp>::value_type;
     // typedef pointer = base_iterator<_Tp>::pointer;
     // typedef reference = base_iterator<_Tp>::reference;
@@ -54,6 +58,7 @@ struct normal_iterator : public base_iterator <_Tp> {
     typedef typename base_iterator<_Tp>::reference reference;
     typedef base_iterator<_Tp> base;
     typedef normal_iterator<value_type> self;
+    typedef typename base::difference_type difference_type;
 
     using base_iterator<_Tp>::_ptr;
 

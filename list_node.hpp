@@ -65,9 +65,11 @@ template <typename _Tp> struct list_node : public node<_Tp> {
 template <typename _Tp> struct list_iterator;
 
 template <typename _Tp> struct list_iterator {
+    typedef asp::bidirectional_iterator_tag iterator_category;
     typedef list_iterator<_Tp> self;
     typedef list_node<_Tp> lnode;
     typedef _Tp value_type;
+    typedef asp::difference_type difference_type;
 
     list_iterator() {}
     list_iterator(lnode* n): _ptr(n) {}
