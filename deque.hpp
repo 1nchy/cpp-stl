@@ -164,7 +164,11 @@ public:
             return _M_insert_aux(_pos._M_const_cast(), _e);
         }
     }
-    template <typename _InputIterator> iterator insert(const_iterator _pos, _InputIterator _first, _InputIterator _last) {}
+    template <typename _InputIterator> iterator insert(const_iterator _pos, _InputIterator _first, _InputIterator _last) {
+        const difference_type _offset = _pos - cbegin();
+        _M_range_insert_aux(_pos._M_const_cast(), _first, _last);
+        return begin() + _offset;
+    }
     iterator erase(const_iterator _pos) {}
     iterator erase(const_iterator _first, const_iterator _last) {}
     void clear() {}
@@ -323,6 +327,10 @@ protected:
         }
         *_pos = _x_copy;
         return _pos;
+    }
+
+    template <typename _ForwardIterator> void _M_range_insert_aux(iterator _pos, _ForwardIterator _first, _ForwardIterator _last) {
+
     }
 };
 
