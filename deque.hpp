@@ -330,7 +330,8 @@ protected:
     }
 
     template <typename _ForwardIterator> void _M_range_insert_aux(iterator _pos, _ForwardIterator _first, _ForwardIterator _last) {
-
+        const size_type _n = asp::distance(_first, _last);
+        int i = 0;
     }
 };
 

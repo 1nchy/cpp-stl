@@ -1,6 +1,8 @@
 #ifndef _ASP_ITERATOR_HPP_
 #define _ASP_ITERATOR_HPP_
 
+#include <iterator>
+
 #include "basic_param.hpp"
 #include "iterator_traits.hpp"
 
@@ -107,18 +109,10 @@ struct normal_iterator : public base_iterator <_Tp> {
     // value_type* _ptr = nullptr;
 };
 
-template <typename _Iterator> difference_type distance(_Iterator first, _Iterator last) {
-    return _distance(first, last, asp::_A_iterator_category(first));
-}
-template <typename _Iterator> void advance(_Iterator& _p, difference_type _n) {
-    _advance(_p, _n, asp::_A_iterator_category(_p));
-}
-
-
-template <typename _Iterator> static difference_type _distance(_Iterator& first, _Iterator& last, asp::random_access_iterator_tag&) {
+template <typename _Iterator> static difference_type _distance(_Iterator& first, _Iterator& last, asp::random_access_iterator_tag) {
     return last - first;
 }
-template <typename _Iterator> static difference_type _distance(_Iterator& first, _Iterator& last, asp::bidirectional_iterator_tag&) {
+template <typename _Iterator> static difference_type _distance(_Iterator& first, _Iterator& last, asp::bidirectional_iterator_tag) {
     difference_type _n = 0;
     while (first != last) {
         ++first;
@@ -126,21 +120,35 @@ template <typename _Iterator> static difference_type _distance(_Iterator& first,
     }
     return _n;
 }
-
-template <typename _Tp> static void _advance(normal_iterator<_Tp>& first, difference_type _n, asp::random_access_iterator_tag&) {
-    first += _n;
+template <typename _Iterator, typename _UnknownIteraterTag> static difference_type _distance(_Iterator& first, _Iterator& last, _UnknownIteraterTag) {
+    return std::distance(first, last);
 }
-template <typename _Iterator> static void _advance(_Iterator& first, difference_type _n, asp::bidirectional_iterator_tag&) {
+
+template <typename _Tp> static void _advance(normal_iterator<_Tp>& _p, difference_type _n, asp::random_access_iterator_tag) {
+    _p += _n;
+}
+template <typename _Iterator> static void _advance(_Iterator& _p, difference_type _n, asp::bidirectional_iterator_tag) {
     if (_n > 0) {
         while (_n--) {
-            ++first;
+            ++_p;
         }
     }
     else if (_n < 0) {
         while (_n++) {
-            --first;
+            --_p;
         }
     }
+}
+template <typename _Iterator, typename _UnknownIteraterTag> static void _advance(_Iterator& _p, difference_type _n, _UnknownIteraterTag) {
+    std::advance(_p, _n);
+}
+
+
+template <typename _Iterator> difference_type distance(_Iterator first, _Iterator last) {
+    return _distance(first, last, asp::_A_iterator_category(first));
+}
+template <typename _Iterator> void advance(_Iterator& _p, difference_type _n) {
+    _advance(_p, _n, asp::_A_iterator_category(_p));
 }
 
 };
