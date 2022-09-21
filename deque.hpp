@@ -189,18 +189,23 @@ public:
 
 
 protected:
-    // to make sure at least %_nodes_to_add nodes exist at back
+    // to make sure at least %_nodes_to_add nodes exist at back, if there's no enough space, then reallocate.
+    // promise to not change the distance between %_start and %_finish
+    // need to allocate node
     void _M_reserve_map_at_back(size_type _nodes_to_add = 1) {
         if (_nodes_to_add + 1 > size_type(this->_data._map_size - (this->_data._finish._node - this->_data._map))) {
             _M_reallocate_map_at_back(_nodes_to_add);
         }
     }
-    // to make sure at least %_nodes_to_add nodes exist at front
+    // to make sure at least %_nodes_to_add nodes exist at front, if there's no enough space, then reallocate.
+    // promise to not change the distance between %_start and %_finish
+    // need to allocate node
     void _M_reserve_map_at_front(size_type _nodes_to_add = 1) {
         if (_nodes_to_add > size_type(this->_data._start._node - this->_data._map)) {
             _M_reallocate_map_at_front(_nodes_to_add);
         }
     }
+    // only reallocate memory, won't change the distance between %_start and %_finish
     void _M_reallocate_map_at_back(size_type _nodes_to_add) {
         const size_type _old_num_nodes = this->_data._finish._node - this->_data._start._node + 1;
         const size_type _new_num_nodes = _old_num_nodes + _nodes_to_add;
@@ -233,6 +238,7 @@ protected:
         this->_data._start._M_set_node(_new_nstart);
         this->_data._finish._M_set_node(_new_nstart + _old_num_nodes - 1);
     }
+    // only reallocate memory, won't change the distance between %_start and %_finish
     void _M_reallocate_map_at_front(size_type _nodes_to_add) {
         const size_type _old_num_nodes = this->_data._finish._node - this->_data._start._node + 1;
         const size_type _new_num_nodes = _old_num_nodes + _nodes_to_add;
@@ -257,6 +263,39 @@ protected:
         }
         this->_data._start._M_set_node(_new_nstart);
         this->_data._finish._M_set_node(_new_nstart + _new_num_nodes - 1);
+    }
+
+    /* to make sure at least %_n elements exist at back, if there's no enough space, then reallocate.
+    *  promise to not change the distance between %_start and %_finish */
+    iterator _M_reserve_elements_at_back(size_type _n) {
+        const size_type _vacancy = this->_data._start._last - this->_data._start._cur - 1;
+        if (_n > _vacancy) {
+            _M_new_elements_at_back(_n - _vacancy);
+        }
+        return this->_data._finish + difference_type(_n);
+    }
+    /* to make sure at least %_n elements exist at front, if there's no enough space, then reallocate.
+    *  promise to not change the distance between %_start and %_finish */
+    iterator _M_reserve_elements_at_front(size_type _n) {
+        const size_type _vacancy = this->_data._start._cur - this->_data._start._first;
+        if (_n > _vacancy) {
+            _M_new_elements_at_front(_n - _vacancy);
+        }
+        return this->_data._start - difference_type(_n);
+    }
+    void _M_new_elements_at_back(size_type _new_elems) {
+        const size_type _new_nodes = (_new_elems + base::_S_buffer_size() - 1) / base::_S_buffer_size();
+        _M_reserve_map_at_back(_new_nodes);
+        for (size_type _i = 1; _i <= _new_nodes; ++_i) {
+            *(this->_data._finish._node + _i) = this->_M_allocate_node();
+        }
+    }
+    void _M_new_elements_at_front(size_type _new_elems) {
+        const size_type _new_nodes = (_new_elems + base::_S_buffer_size() - 1) / base::_S_buffer_size();
+        _M_reserve_map_at_front(_new_nodes);
+        for (size_type _i = 1; _i <= _new_nodes; ++_i) {
+            *(this->_data._start._node - _i) = this->_M_allocate_node();
+        }
     }
 
     /*
@@ -331,7 +370,19 @@ protected:
 
     template <typename _ForwardIterator> void _M_range_insert_aux(iterator _pos, _ForwardIterator _first, _ForwardIterator _last) {
         const size_type _n = asp::distance(_first, _last);
-        int i = 0;
+        if (_pos == this->_data._start) {
+            iterator _new_start = _M_reserve_elements_at_front(_n);
+            asp::_A_copy(_first, _last, _new_start, this->_data);
+            this->_data._start = _new_start;
+        }
+        else if (_pos == this->_data._finish) {
+            iterator _new_finish = _M_reserve_elements_at_back(_n);
+            asp::_A_copy(_first, _last, this->_data._finish, this->_data);
+            this->_data._finish = _new_finish;
+        }
+        else {
+
+        }
     }
 };
 
