@@ -367,6 +367,53 @@ protected:
         *_pos = _x_copy;
         return _pos;
     }
+    template <typename _ForwardIterator> void _M_insert_n_aux(iterator _pos, _ForwardIterator _first, _ForwardIterator _last, size_type _n) {
+        const difference_type _elems_before = _pos - this->_data._start;
+        const size_type _old_length = size();
+        if (static_cast<size_type>(_elems_before) < _old_length / 2) { // insert in the 1st half
+            iterator _new_start = _M_reserve_elements_at_front(_n);
+            iterator _old_start = this->_data._start;
+            _pos = this->_data._start + _elems_before;
+            if (_elems_before >= difference_type(_n)) {
+                iterator _old_start_n = _old_start + _n;
+                this->_M_range_copy(_old_start, _old_start_n, _new_start);
+                this->_data._start = _new_start;
+                this->_M_range_copy(_old_start_n, _pos, _old_start);
+                asp::_A_copy(_first, _last, _pos - difference_type(_n), this->_data);
+            }
+            else {
+                _ForwardIterator _mid = _first;
+                asp::advance(_mid, difference_type(_n) - _elems_before);
+                this->_M_range_copy(_old_start, _pos, _new_start);
+                this->_data._start = _new_start;
+                iterator _new_start_n = _new_start + _elems_before;
+                asp::_A_copy(_first, _mid, _new_start_n, this->_data);
+                asp::_A_copy(_mid, _last, _old_start, this->_data);
+            }
+        }
+        else { // insert in the 2nd half
+            iterator _new_finish = _M_reserve_elements_at_back(_n);
+            iterator _old_finish = this->_data._finish;
+            const difference_type _elems_after = difference_type(_old_length) - _elems_before;
+            _pos = this->_data._finish - _elems_after;
+            if (_elems_after > difference_type(_n)) {
+                iterator _old_finish_n = _old_finish - difference_type(_n);
+                this->_M_range_copy(_old_finish_n, _old_finish, _old_finish);
+                this->_data._finish = _new_finish;
+                this->_M_range_copy_backward(_pos, _old_finish_n, _old_finish);
+                asp::_A_copy(_first, _last, _pos, this->_data);
+            }
+            else {
+                _ForwardIterator _mid = _first;
+                asp::advance(_mid, _elems_after);
+                iterator _new_finish_n = _new_finish - _elems_after;
+                this->_M_range_copy(_pos, _old_finish, _new_finish_n);
+                this->_data._finish = _new_finish;
+                asp::_A_copy(_first, _mid, _pos, this->_data);
+                asp::_A_copy(_mid, _last, _old_finish, this->_data);
+            }
+        }
+    }
 
     template <typename _ForwardIterator> void _M_range_insert_aux(iterator _pos, _ForwardIterator _first, _ForwardIterator _last) {
         const size_type _n = asp::distance(_first, _last);
@@ -381,7 +428,7 @@ protected:
             this->_data._finish = _new_finish;
         }
         else {
-
+            this->_M_insert_n_aux(_pos, _first, _last, _n);
         }
     }
 };
