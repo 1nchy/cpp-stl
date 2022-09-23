@@ -255,6 +255,7 @@ template <typename _Tp, typename _Alloc> struct deque_base {
         }
     }
 
+protected:
     constexpr static size_type _S_buffer_size() {
         return deque_buf_size(sizeof(_Tp));
     }
