@@ -280,6 +280,13 @@ protected:
     void _M_destroy_node(elt_pointer _p) {
         elt_alloc_traits::destroy(_data, _p);
     }
+    void _M_destroy_node(elt_pointer _p, size_type _n) {
+        // elt_alloc_traits::destroy(_data, _p, _n);
+        std::_Destroy(_p, _p + _n, _data);
+    }
+    void _M_destroy_node(elt_pointer _first, elt_pointer _last) {
+        std::_Destroy(_first, _last, _data);
+    }
 
     map_pointer _M_allocate_map(size_type _n) {
         map_allocator_type _map_alloc = _M_get_map_allocator();
@@ -289,11 +296,11 @@ protected:
         map_allocator_type _map_alloc = _M_get_map_allocator();
         map_alloc_traits::deallocate(_map_alloc, _p, _n);
     }
-    void _M_destory_map(map_pointer _p) {
+    void _M_destroy_map(map_pointer _p) {
         map_allocator_type _map_alloc = _M_get_map_allocator();
-        map_alloc_traits::destory(_map_alloc, _p);
+        map_alloc_traits::destroy(_map_alloc, _p);
     }
-    void _M_destory_map(map_pointer _first, map_pointer _last) {
+    void _M_destroy_map(map_pointer _first, map_pointer _last) {
         map_allocator_type _map_alloc = _M_get_map_allocator();
         std::_Destroy(_first, _last, _map_alloc);
     }

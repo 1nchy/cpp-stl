@@ -80,7 +80,7 @@ public:
             ++this->_data._finish;
         }
         else {
-            _M_push_back_aux(_x);
+            _M_push_back(_x);
         }
     }
     void push_back(value_type&& _x) {
@@ -89,10 +89,10 @@ public:
     void pop_back() {
         if (this->_data._finish._cur != this->_data._finish._first) {
             --this->_data._finish._cur;
-            this->_M_destroy_node(this->_data._finish._cur);
+            _M_destroy_element(this->_data._finish);
         }
         else {
-            _M_pop_back_aux();
+            _M_pop_back();
         }
     }
     void push_front(const value_type& _x) {
@@ -101,7 +101,7 @@ public:
             this->_M_construct_node(this->_data._start._cur, _x);
         }
         else {
-            _M_push_front_aux(_x);
+            _M_push_front(_x);
         }
     }
     void push_front(value_type&& _x) {
@@ -109,11 +109,11 @@ public:
     }
     void pop_front() {
         if (this->_data._start._cur != this->_data._start._last - 1) {
-            this->_M_destroy_node(this->_data._start._cur);
+            _M_destroy_element(this->_data._start);
             ++this->_data._start;
         }
         else {
-            _M_pop_front_aux();
+            _M_pop_front();
         }
     }
     template <typename... _Args> iterator emplace(const_iterator _pos, _Args&&... _args) {
@@ -128,7 +128,7 @@ public:
             return _tmp;
         }
         else {
-            return _M_insert_aux(_pos._M_const_cast(), std::forward<_Args>(_args)...);
+            return _M_insert(_pos._M_const_cast(), std::forward<_Args>(_args)...);
         }
     }
     template <typename... _Args> void emplace_back(_Args&&... _args) {
@@ -137,7 +137,7 @@ public:
             ++this->_data._finish;
         }
         else {
-            _M_push_back_aux(std::forward<_Args>(_args)...);
+            _M_push_back(std::forward<_Args>(_args)...);
         }
     }
     template <typename... _Args> void emplace_front(_Args&&... _args) {
@@ -146,7 +146,7 @@ public:
             this->_M_construct_node(this->_data._start._cur, std::forward<_Args>(_args)...);
         }
         else {
-            _M_push_front_aux(std::forward<_Args>(_args)...);
+            _M_push_front(std::forward<_Args>(_args)...);
         }
     }
     iterator insert(const_iterator _pos, const value_type& _e) {
@@ -161,16 +161,20 @@ public:
             return _tmp;
         }
         else {
-            return _M_insert_aux(_pos._M_const_cast(), _e);
+            return _M_insert(_pos._M_const_cast(), _e);
         }
     }
     template <typename _InputIterator> iterator insert(const_iterator _pos, _InputIterator _first, _InputIterator _last) {
         const difference_type _offset = _pos - cbegin();
-        _M_range_insert_aux(_pos._M_const_cast(), _first, _last);
+        _M_range_insert(_pos._M_const_cast(), _first, _last);
         return begin() + _offset;
     }
-    iterator erase(const_iterator _pos) {}
-    iterator erase(const_iterator _first, const_iterator _last) {}
+    iterator erase(const_iterator _pos) {
+        return _M_erase(_pos._M_const_cast());
+    }
+    iterator erase(const_iterator _first, const_iterator _last) {
+        return _M_range_erase(_first._M_const_cast(), _last._M_const_cast());
+    }
     void clear() {}
 
 
@@ -298,11 +302,27 @@ protected:
         }
     }
 
+    void _M_destroy_element(iterator _pos) {
+        this->_M_destroy_node(_pos._cur);
+    }
+    void _M_destroy_element(iterator _first, iterator _last) {
+        for (map_pointer _np = _first._node + 1; _np < _last._node; ++_np) {
+            this->_M_destroy_node(*_np, base::_S_buffer_size());
+        }
+        if (_first._node != _last._node) {
+            this->_M_destroy_node(_first._cur, _first._last);
+            this->_M_destroy_node(_last._first, _last._cur);
+        }
+        else {
+            this->_M_destroy_node(_first._cur, _last._cur);
+        }
+    }
+
     /*
     * @brief: push the element to the back, which need to reallocate the memory.
     * @invoke: only when {%_data._finish._cur == %_data._finish._last - 1}
     */
-    template <typename... _Args> void _M_push_back_aux(_Args&&... _args) {
+    template <typename... _Args> void _M_push_back(_Args&&... _args) {
         _M_reserve_map_at_back();
         *(this->_data._finish._node + 1) = this->_M_allocate_node();
         this->_M_construct_node(this->_data._finish._cur, std::forward<_Args>(_args)...);
@@ -313,7 +333,7 @@ protected:
     * @brief: pop the element on the back, which need to deallocate the memory.
     * @invoke: only when {%_data._finish._cur == %_data._finish._first}
     */
-    void _M_pop_back_aux() {
+    void _M_pop_back() {
         this->_M_deallocate_node(this->_data._finish._first);
         this->_data._finish._M_set_node(this->_data._finish._node - 1);
         this->_data._finish._cur = this->_data._finish._last - 1;
@@ -323,7 +343,7 @@ protected:
     * @brief: push the element to the front, which need to reallocate the memory.
     * @invoke: only when {%_data._start._cur == %_data._start._first}
     */
-    template <typename... _Args> void _M_push_front_aux(_Args&&... _args) {
+    template <typename... _Args> void _M_push_front(_Args&&... _args) {
         _M_reserve_map_at_front();
         *(this->_data._start._node - 1) = this->_M_allocate_node();
         this->_data._start._M_set_node(this->_data._start._node - 1);
@@ -334,14 +354,14 @@ protected:
     * @brief: pop the element on the front, which need to deallocate the memory.
     * @invoke: only when {%_data._start._cur == %_data._start._last - 1}
     */
-    void _M_pop_front_aux() {
+    void _M_pop_front() {
         this->_M_destroy_node(this->_data._start._cur);
         this->_M_deallocate_node(this->_data._start._first);
         this->_data._start._M_set_node(this->_data._start._node + 1);
         this->_data._start._cur = this->_data._start._first;
     }
 
-    template <typename... _Args> iterator _M_insert_aux(iterator _pos, _Args&&... _args) {
+    template <typename... _Args> iterator _M_insert(iterator _pos, _Args&&... _args) {
         difference_type _index = _pos - this->_data._start;
         value_type _x_copy(std::forward<_Args>(_args)...);
         if (static_cast<size_type>(_index) < size() / 2) {
@@ -367,7 +387,7 @@ protected:
         *_pos = _x_copy;
         return _pos;
     }
-    template <typename _ForwardIterator> void _M_insert_n_aux(iterator _pos, _ForwardIterator _first, _ForwardIterator _last, size_type _n) {
+    template <typename _ForwardIterator> void _M_insert_n(iterator _pos, _ForwardIterator _first, _ForwardIterator _last, size_type _n) {
         const difference_type _elems_before = _pos - this->_data._start;
         const size_type _old_length = size();
         if (static_cast<size_type>(_elems_before) < _old_length / 2) { // insert in the 1st half
@@ -414,8 +434,7 @@ protected:
             }
         }
     }
-
-    template <typename _ForwardIterator> void _M_range_insert_aux(iterator _pos, _ForwardIterator _first, _ForwardIterator _last) {
+    template <typename _ForwardIterator> void _M_range_insert(iterator _pos, _ForwardIterator _first, _ForwardIterator _last) {
         const size_type _n = asp::distance(_first, _last);
         if (_pos == this->_data._start) {
             iterator _new_start = _M_reserve_elements_at_front(_n);
@@ -428,8 +447,53 @@ protected:
             this->_data._finish = _new_finish;
         }
         else {
-            this->_M_insert_n_aux(_pos, _first, _last, _n);
+            this->_M_insert_n(_pos, _first, _last, _n);
         }
+    }
+
+    iterator _M_erase(iterator _pos) {
+        iterator _next = _pos;
+        ++_next;
+        const difference_type _index = _pos - begin();
+        if (static_cast<size_type>(_index) < (size() / 2)) {
+            if (_pos != begin()) {
+                _M_range_copy_backward(begin(), _pos, _next);
+            }
+            pop_front();
+        }
+        else {
+            if (_pos != end()) {
+                _M_range_copy(_next, end(), _pos);
+            }
+            pop_back();
+        }
+        return begin() + _index;
+    }
+    iterator _M_range_erase(iterator _first, iterator _last) {
+        if (_first == _last) {
+            return _first;
+        }
+        if (_first == begin() && _last == end()) {
+            clear();
+            return end();
+        }
+        const difference_type _n = _last - _first;
+        const difference_type _elems_before = _first - begin();
+        if (static_cast<size_type>(_elems_before) <= (size() - _n) / 2) {
+            this->_M_range_copy_backward(begin(), _first, _last);
+            iterator _pos = begin() + _n;
+            _M_destroy_element(begin(), _pos);
+            this->_M_destroy_map(this->_data._start._node, _pos._node);
+            this->_data._start = _pos;
+        }
+        else {
+            this->_M_range_copy(_last, end(), _first);
+            iterator _pos = end() - _n;
+            _M_destroy_element(_pos, end());
+            this->_M_destroy_map(_pos._node + 1, this->_data._finish._node + 1);
+            this->_data._finish = _pos;
+        }
+        return begin() + _elems_before;
     }
 };
 
