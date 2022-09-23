@@ -175,7 +175,11 @@ public:
     iterator erase(const_iterator _first, const_iterator _last) {
         return _M_range_erase(_first._M_const_cast(), _last._M_const_cast());
     }
-    void clear() {}
+    void clear() {
+        _M_destroy_element(begin(), end());
+        this->_M_destroy_map(this->_data._start._node + 1, this->_data._finish._node + 1);
+        this->_data._finish = this->_data._start;
+    }
 
 
     /// ostream
