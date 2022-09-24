@@ -14,6 +14,8 @@ template <typename _Tp> struct bitree_node : node<_Tp> {
     using pointer = typename base::pointer;
     using reference = typename base::reference;
 
+    using base::_pt;
+
     bitree_node() : base() {}
     bitree_node(const self& rhs) : base(rhs),
      _parent(rhs._parent), _left(rhs._left), _right(rhs._right) {}
@@ -47,6 +49,63 @@ template <typename _Tp> struct bitree_node : node<_Tp> {
     }
     void hook_parent(self* const _p) {
 
+    }
+    self* left_rotate() {
+        self* _right_child = this->_right;
+        if (_right_child == nullptr) {
+            return this;
+        }
+        self* _this_parent = this->_parent;
+        _right_child->_parent = _this_parent;
+        if (_this_parent != nullptr) {
+            if (this == _this_parent->_left) {
+                _this_parent->_left = _right_child;
+            }
+            else {
+                _this_parent->_right = _right_child;
+            }
+        }
+        this->_right = _right_child->_left;
+        if (_right_child->_left != nullptr) {
+            _right_child->_left->_parent = this;
+        }
+        _right_child->_left = this;
+        this->_parent = _right_child;
+        return _right_child;
+    }
+    self* right_rotate() {
+        self* _left_child = this->_left;
+        if (_left_child == nullptr) {
+            return this;
+        }
+        self* _this_parent = this->_parent;
+        _left_child->_parent = _this_parent;
+        if (_this_parent != nullptr) {
+            if (this == _this_parent->_left) {
+                _this_parent->_left = _left_child;
+            }
+            else {
+                _this_parent->_right = _left_child;
+            }
+        }
+        this->_left = _left_child->_right;
+        if (_left_child->_right != nullptr) {
+            _left_child->_right->_parent = this;
+        }
+        _left_child->_right = this;
+        this->_parent = _left_child;
+        return _left_child;
+    }
+
+protected:
+    bool check() const {
+        if (this->_left != nullptr && this->_left->_parent != this) {
+            return false;
+        }
+        if (this->_right != nullptr && this->_right->_parent != this) {
+            return false;
+        }
+        return (this->_left == nullptr || this->_left->check()) && (this->_right == nullptr || this->_right->check());
     }
 
     self* _parent = nullptr;
