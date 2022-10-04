@@ -32,6 +32,13 @@ template <typename _Tp> struct node {
     value_type* valptr() { return _pt.get(); }
     const value_type* valptr() const { return _pt.get(); }
 
+    void emplace(const value_type& _e) {
+        _pt = std::make_unique<value_type>(_e);
+    }
+    template <typename... _Args> void emplace(_Args&&... _args) {
+        _pt = std::make_unique<value_type>(std::forward<_Args>(_args)...);
+    }
+
     virtual operator bool() const {
         return _pt.get() != nullptr;
     }
