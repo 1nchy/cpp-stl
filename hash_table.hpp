@@ -7,34 +7,29 @@
 #include <memory>
 
 namespace asp {
-template <typename _Tp> struct hash_node;
 template <typename _Key, typename _Value, typename _Hash, typename _Alloc = std::allocator<_Value>> class hash_table;
 
-template <typename _Tp> struct hash_node : public node<_Tp> {
-    typedef node<_Tp> base;
-    typedef hash_node<_Tp> self;
-    typedef _Tp value_type;
-    typedef _Tp* pointer;
-
-    hash_node() : base() {}
-    hash_node(const hash_node& r) : base(r) {}
-    
-    self* _next = nullptr;
-    size_type _hash_code;
-};
-
 template <typename _Key, typename _Value, typename _Hash, typename _Alloc>
- class hash_table : public hash_table_alloc<rebind_alloc<hash_node<_Value>>> {
+ class hash_table : public hash_table_alloc<_Value, _Alloc> {
 public:
-    typedef hash_node<_Value> _Node;
-    typedef _Node* bucket_type;
+    typedef hash_table_alloc<_Value, _Alloc> base;
+    typedef hash_table_alloc<_Value, _Alloc> ht_alloc;
+    typedef typename base::elt_allocator_type elt_allocator_type;
+    typedef typename base::elt_alloc_traits elt_alloc_traits;
+    typedef typename base::node_allocator_type node_allocator_type;
+    typedef typename base::node_alloc_traits node_alloc_traits;
+    typedef typename base::bucket_allocator_type bucket_allocator_type;
+    typedef typename base::bucket_alloc_traits bucket_alloc_traits;
+
     typedef _Key key_type;
-    typedef _Node::value_type value_type;
+    typedef typename base::node_type node_type;
+    typedef typename base::bucket_type bucket_type;
+    typedef typename node_type::value_type value_type;
     typedef _Hash hasher;
 
     bucket_type* _buckets = &_single_bucket;
     size_type _bucket_count = 1;
-    _Node _before_begin;
+    node_type _before_begin;
     size_type _element_count = 0;
     rehash_policy _rehash_policy;
     bucket_type _single_bucket = nullptr;
@@ -47,7 +42,16 @@ public:
             _single_bucket = nullptr;
             return &_single_bucket;
         }
-        return 
+        return ht_alloc::_M_allocate_buckets(_n);
+    }
+    void _M_deallocate_buckets(bucket_type* _p, size_type _n) {
+        if (_M_uses_single_bucket()) {
+            return;
+        }
+        ht_alloc::_M_deallocate_buckets(_p, _n);
+    }
+    void _M_deallocate_buckets() {
+        _M_deallocate_buckets(_buckets, _bucket_count);
     }
 };
 };

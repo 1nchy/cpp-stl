@@ -2,13 +2,16 @@
 #define _ASP_HASH_TABLE_POLICY_HPP_
 
 #include <cmath>
+#include <cstring>
+#include <memory>
 
 #include "node.hpp"
 
 namespace asp {
 
 struct rehash_policy;
-template<typename _Alloc> struct hash_table_alloc;
+template <typename _Tp> struct hash_node;
+template<typename _Value, typename _Alloc> struct hash_table_alloc;
 
 extern const unsigned long _prime_list[] = {
     3ul,          7ul,          13ul,
@@ -56,9 +59,56 @@ struct rehash_policy {
     mutable size_type _next_resize; // = _n_bkt * _max_load_factor
 };
 
-template<typename _Alloc> struct hash_table_alloc : public _Alloc {
-    typedef _Alloc node_allocator_type;
-    typedef node_type _Alloc::value_type;
+template <typename _Tp> struct hash_node : public node<_Tp> {
+    typedef node<_Tp> base;
+    typedef hash_node<_Tp> self;
+    typedef _Tp value_type;
+    typedef _Tp* pointer;
+
+    hash_node() : base() {}
+    hash_node(const hash_node& r) : base(r) {}
+    
+    self* _next = nullptr;
+    size_type _hash_code;
+};
+
+template <typename _Value, typename _Alloc> struct hash_table_alloc : public _Alloc {
+    typedef hash_node<_Value> node_type;
+    typedef node_type* bucket_type;
+    typedef _Alloc elt_allocator_type;
+    typedef std::allocator_traits<elt_allocator_type> elt_alloc_traits;
+    typedef typename elt_alloc_traits::template rebind_alloc<node_type> node_allocator_type;
+    typedef std::allocator_traits<node_allocator_type> node_alloc_traits;
+    typedef typename elt_alloc_traits::template rebind_alloc<bucket_type> bucket_allocator_type;
+    typedef std::allocator_traits<bucket_allocator_type> bucket_alloc_traits;
+
+    elt_allocator_type& _M_get_elt_allocator() { return *static_cast<elt_allocator_type*>(this); }
+    const elt_allocator_type& _M_get_elt_allocator() const { return *static_cast<const elt_allocator_type*>(this); }
+    node_allocator_type& _M_get_node_allocator() { return node_allocator_type(_M_get_elt_allocator()); }
+    bucket_allocator_type& _M_get_bucket_allocator() { return bucket_allocator_type(_M_get_elt_allocator()); }
+
+    node_type* _M_allocate_node(const node_type& _x) {
+        auto _ptr = node_alloc_traits::allocate(_M_get_node_allocator(), 1);
+        node_type* _p = std::addressof(*_ptr);
+        node_alloc_traits::construct(_M_get_node_allocator(), _p, _x);
+    }
+    template <typename... _Args> node_type* _M_allocate_node(_Args&&... _args) {
+        auto _ptr = node_alloc_traits::allocate(_M_get_node_allocator(), 1);
+        node_type* _p = std::addressof(*_ptr);
+        node_alloc_traits::construct(_M_get_node_allocator(), _p, std::forward<_Args>(_args)...);
+    }
+    void _M_deallocate_node(node_type* _p) {
+        node_alloc_traits::destroy(_M_get_node_allocator(), _p);
+        node_alloc_traits::deallocate(_M_get_node_allocator(), _p, 1);
+    }
+    bucket_type* _M_allocate_buckets(size_type _n) {
+        auto _ptr = bucket_alloc_traits::allocate(_M_get_bucket_allocator(), _n);
+        bucket_type* _p = std::addressof(*_ptr);
+        bzero(_p, _n * sizeof(bucket_type));
+    }
+    void _M_deallocate_buckets(bucket_type* _p, size_type _n) {
+        bucket_alloc_traits::deallocate(_M_get_bucket_allocator(), _p, _n);
+    }
 };
 
 size_type rehash_policy::next_bkt(size_type _n) const {
