@@ -38,9 +38,12 @@ template <typename _Key, typename _Value, bool _Constant, typename _Hash, typena
         const _node_type* _old = _cur;
         _cur = _cur->_next;
         if (_cur == nullptr) {
-            size_type _bkt = _ht->_M_bucket_index(_old->_hash_code);
-            while (_cur == nullptr && ++_bkt < _ht->bucket_count()) {
-                _cur = _ht->_buckets[_bkt];
+            auto _bkt = _ht->_M_bucket_index(_old->_hash_code);
+            while (_cur == nullptr) {
+                _ht->_M_next_bucket_index(_bkt);
+                if (_bkt.first != -1) {
+                    _cur = _ht->_M_bucket(_bkt);
+                }
             }
         }
     }
@@ -79,7 +82,7 @@ template <typename _Key, typename _Value, bool _Constant, typename _Hash, typena
 };
 
 template <typename _Key, typename _Value, typename _Hash, typename _Alloc>
- struct hash_iterator : hash_node_iterator<_Key, _Value, false, _Hash, _Alloc> {
+ struct hash_iterator : public hash_node_iterator<_Key, _Value, false, _Hash, _Alloc> {
     typedef asp::forward_iterator_tag iterator_category;
     typedef hash_node_iterator<_Key, _Value, false, _Hash, _Alloc> base;
     typedef hash_iterator<_Key, _Value, _Hash, _Alloc> self;
@@ -99,7 +102,7 @@ template <typename _Key, typename _Value, typename _Hash, typename _Alloc>
 };
 
 template <typename _Key, typename _Value, typename _Hash, typename _Alloc>
- struct hash_const_iterator : hash_node_iterator<_Key, _Value, true, _Hash, _Alloc> {
+ struct hash_const_iterator : public hash_node_iterator<_Key, _Value, true, _Hash, _Alloc> {
     typedef asp::forward_iterator_tag iterator_category;
     typedef hash_node_iterator<_Key, _Value, true, _Hash, _Alloc> base;
     typedef hash_const_iterator<_Key, _Value, _Hash, _Alloc> self;
@@ -140,12 +143,17 @@ public:
     typedef hash_iterator<_Key, _Value, _Hash, _Alloc> iterator;
     typedef hash_const_iterator<_Key, _Value, _Hash, _Alloc> const_iterator;
 
-    bucket_type* _buckets = &_single_bucket;
-    size_type _bucket_count = 1;
+    // (0, x) indicates _buckets[x]
+    // (1, y) indicates _rehash_buckets[y]
+    typedef std::pair<short, size_type> bucket_index;
+
+    bucket_type* _buckets = nullptr;
+    size_type _bucket_count = 0;
+    bucket_type* _rehash_buckets = nullptr;  // only used in rehash
+    size_type _rehash_bucket_count = 0;
     node_type _before_begin;  // the node before @begin().
     size_type _element_count = 0;
     rehash_policy _rehash_policy;
-    bucket_type _single_bucket = nullptr;
 
     iterator begin() { return iterator(_M_begin()); }
     const_iterator cbegin() const { return const_iterator(_M_begin()); }
@@ -157,18 +165,7 @@ public:
     iterator find(const key_type& _k);
     size_type count(const key_type& _k);
 
-    bool _M_uses_single_bucket() const {
-        return _buckets == &_single_bucket;
-    }
-    bucket_type* _M_allocate_buckets(size_type _n) {
-        if (_n == 1) {
-            _single_bucket = nullptr;
-            return &_single_bucket;
-        }
-        return ht_alloc::_M_allocate_buckets(_n);
-    }
     void _M_deallocate_buckets(bucket_type* _p, size_type _n) {
-        if (_M_uses_single_bucket()) return;
         ht_alloc::_M_deallocate_buckets(_p, _n);
     }
     void _M_deallocate_buckets() {
@@ -178,8 +175,11 @@ public:
     node_type* _M_begin() const {
         return static_cast<node_type*>(_before_begin._next);
     }
-    size_type _M_bucket_index(node_type* _p) const;
-    size_type _M_bucket_index(hash_code _c) const;
+    bucket_index _M_bucket_index(node_type* _p) const;
+    bucket_index _M_bucket_index(hash_code _c) const;
+    bucket_index _M_next_bucket_index(const bucket_index& _i) const;
+    void _M_next_bucket_index(bucket_index& _i) const;
+    bucket_type _M_bucket(const bucket_index& _i) const;
     node_type* _M_find_node(size_type _bkt, const key_type& _k, hash_code _c) const;
 
 
