@@ -6,12 +6,13 @@
 #include <memory>
 
 #include "node.hpp"
+#include "iterator.hpp"
 
 namespace asp {
 
 struct rehash_policy;
 template <typename _Tp> struct hash_node;
-template<typename _Value, typename _Alloc> struct hash_table_alloc;
+template <typename _Value, typename _Alloc> struct hash_table_alloc;
 
 extern const unsigned long _prime_list[] = {
     3ul,          7ul,          13ul,
@@ -64,17 +65,19 @@ template <typename _Tp> struct hash_node : public node<_Tp> {
     typedef hash_node<_Tp> self;
     typedef _Tp value_type;
     typedef _Tp* pointer;
+    typedef self* bucket_type;
+    typedef size_type hash_code;
 
     hash_node() : base() {}
     hash_node(const hash_node& r) : base(r) {}
     
     self* _next = nullptr;
-    size_type _hash_code;
+    hash_code _hash_code;
 };
 
 template <typename _Value, typename _Alloc> struct hash_table_alloc : public _Alloc {
     typedef hash_node<_Value> node_type;
-    typedef node_type* bucket_type;
+    typedef typename node_type::bucket_type bucket_type;
     typedef _Alloc elt_allocator_type;
     typedef std::allocator_traits<elt_allocator_type> elt_alloc_traits;
     typedef typename elt_alloc_traits::template rebind_alloc<node_type> node_allocator_type;
