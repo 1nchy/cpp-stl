@@ -20,8 +20,15 @@ template <typename _Key, typename _Value, typename _Hash = std::hash<_Key>, type
  * _hash_node =(_M_extract)=> _key
  * _key =(_M_hash_code)=> _hash_code
  * {_key, _hash_code} =(_M_bucket_index)=> _bucket_index
+ * 
+ * unordered_map<_Key, _Value> = hash_table<_Key, std::pair<_Key, _Value>>
+ * unordered_set<_Value> = hash_table<_Value, _Value>
+ * _ExtractKey 是可调用类型，返回的是给 hashtable 计算哈希值的部分
+ * 对于 map 和 set，这个部分都是 _Value 的第一个值，即 std::get<0>(...)
+ * 需要牢记的点：在 hashtable 中，_Key 是从 _Value 算出来的，不是外界传进来的
 */
 
+// _Key = decltype(std::get<0>(_Value))
 template <typename _Key, typename _Value, bool _Constant, typename _Hash, typename _Alloc> struct hash_node_iterator {
     typedef asp::forward_iterator_tag iterator_category;
     typedef hash_node_iterator<_Key, _Value, _Constant, _Hash, _Alloc> self;
@@ -163,6 +170,8 @@ public:
     size_type _element_count = 0;
     rehash_policy _rehash_policy;
 
+    _ExtractKey _extract_key;
+
     iterator begin() { return iterator(_M_begin()); }
     const_iterator cbegin() const { return const_iterator(_M_begin()); }
     iterator end() { return iterator(nullptr); }
@@ -183,6 +192,7 @@ public:
     node_type* _M_begin() const {
         return static_cast<node_type*>(_before_begin._next);
     }
+    hash_code _M_hash_code(const key_type& _k) const;
     bool _M_valid_bucket_index(const bucket_index& _i) const;
     bucket_index _M_bucket_index(const node_type* _p) const;
     void _M_next_bucket_index(bucket_index& _i) const;
@@ -192,6 +202,12 @@ public:
 
     /// implement
     // node_type* _M_find_node(const key_type& _k, hash_code _c) const {}
+};
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::_M_hash_code(const key_type& _k) const
+-> hash_code {
+    return hasher()(_k);
 };
 
 template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto

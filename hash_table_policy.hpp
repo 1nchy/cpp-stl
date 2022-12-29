@@ -13,6 +13,7 @@ namespace asp {
 struct rehash_policy;
 template <typename _Tp> struct hash_node;
 template <typename _Value, typename _Alloc> struct hash_table_alloc;
+struct _ExtractKey;
 
 extern const unsigned long _prime_list[] = {
     3ul,          7ul,          13ul,
@@ -123,6 +124,12 @@ template <typename _Value, typename _Alloc> struct hash_table_alloc : public _Al
     }
     void _M_deallocate_buckets(bucket_type* _p, size_type _n) {
         bucket_alloc_traits::deallocate(_M_get_bucket_allocator(), _p, _n);
+    }
+};
+
+struct _ExtractKey {
+    template <typename _Tp> auto operator()(_Tp&& _x) const {
+        return std::get<0>(std::forward<_Tp>(_x));
     }
 };
 
