@@ -14,6 +14,14 @@ template <typename _Key, typename _Value, typename _Hash = std::hash<_Key>, type
 template <typename _Key, typename _Value, typename _Hash = std::hash<_Key>, typename _Alloc = std::allocator<_Value>> struct hash_const_iterator;
 template <typename _Key, typename _Value, typename _Hash = std::hash<_Key>, typename _Alloc = std::allocator<_Value>> class hash_table;
 
+/**
+ * std::hash_table details:
+ * _Args&... _args => _hash_node
+ * _hash_node =(_M_extract)=> _key
+ * _key =(_M_hash_code)=> _hash_code
+ * {_key, _hash_code} =(_M_bucket_index)=> _bucket_index
+*/
+
 template <typename _Key, typename _Value, bool _Constant, typename _Hash, typename _Alloc> struct hash_node_iterator {
     typedef asp::forward_iterator_tag iterator_category;
     typedef hash_node_iterator<_Key, _Value, _Constant, _Hash, _Alloc> self;
@@ -38,12 +46,14 @@ template <typename _Key, typename _Value, bool _Constant, typename _Hash, typena
         const _node_type* _old = _cur;
         _cur = _cur->_next;
         if (_cur == nullptr) {
-            auto _bkt = _ht->_M_bucket_index(_old->_hash_code);
+            auto _bkt = _ht->_M_bucket_index(_old);
             while (_cur == nullptr) {
                 _ht->_M_next_bucket_index(_bkt);
-                if (_bkt.first != -1) {
-                    _cur = _ht->_M_bucket(_bkt);
+                if (_bkt.first == -1) {
+                    _cur = nullptr;
+                    break;
                 }
+                _cur = _ht->_M_bucket(_bkt);
             }
         }
     }
@@ -143,9 +153,7 @@ public:
     typedef hash_iterator<_Key, _Value, _Hash, _Alloc> iterator;
     typedef hash_const_iterator<_Key, _Value, _Hash, _Alloc> const_iterator;
 
-    // (0, x) indicates _buckets[x]
-    // (1, y) indicates _rehash_buckets[y]
-    typedef std::pair<short, size_type> bucket_index;
+    typedef rehash_policy::bucket_index bucket_index;
 
     bucket_type* _buckets = nullptr;
     size_type _bucket_count = 0;
@@ -160,7 +168,7 @@ public:
     iterator end() { return iterator(nullptr); }
     const_iterator cend() const { return const_iterator(nullptr); }
     size_type size() const { return _element_count; }
-    size_type bucket_count() const { return _bucket_count; }
+    size_type bucket_count() const { return _rehash_policy._in_rehash ? _rehash_bucket_count : _bucket_count; }
 
     iterator find(const key_type& _k);
     size_type count(const key_type& _k);
@@ -175,16 +183,88 @@ public:
     node_type* _M_begin() const {
         return static_cast<node_type*>(_before_begin._next);
     }
-    bucket_index _M_bucket_index(node_type* _p) const;
-    bucket_index _M_bucket_index(hash_code _c) const;
-    bucket_index _M_next_bucket_index(const bucket_index& _i) const;
+    bool _M_valid_bucket_index(const bucket_index& _i) const;
+    bucket_index _M_bucket_index(const node_type* _p) const;
     void _M_next_bucket_index(bucket_index& _i) const;
     bucket_type _M_bucket(const bucket_index& _i) const;
-    node_type* _M_find_node(size_type _bkt, const key_type& _k, hash_code _c) const;
+    node_type* _M_find_node(const key_type& _k, hash_code _c) const;
 
 
     /// implement
+    // node_type* _M_find_node(const key_type& _k, hash_code _c) const {}
 };
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::_M_valid_bucket_index(const bucket_index& _i) const
+-> bool {
+    if (_i.first == 0) {
+        return _i.second >= 0 && _i.second < this->_bucket_count;
+    }
+    if (_i.first == 1 && this->_rehash_policy._in_rehash) {
+        return _i.second >= 0 && _i.second < this->_rehash_bucket_count;
+    }
+    return false;
+};
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::_M_bucket_index(const node_type* _p) const
+-> bucket_index {
+    bucket_index _i0 = std::make_pair(0, _p->_hash_code % this->_bucket_count);
+    node_type* _bkt = this->_buckets[_i0.second];
+    while (_bkt != nullptr) {
+        if (*_bkt == *_p) {
+            return _i0;
+        }
+    }
+    if (this->_rehash_policy._in_rehash) {
+        bucket_index _i1 = std::make_pair(1, _p->_hash_code % this->_rehash_bucket_count);
+        _bkt = this->_rehash_buckets[_i1.second];
+        while (_bkt != nullptr) {
+            if (*_bkt == *_p) {
+                return _i1;
+            }
+        }
+    }
+    return std::make_pair(-1, 0);
+};
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::_M_next_bucket_index(bucket_index& _i) const
+-> void {
+    if (!_M_valid_bucket_index(_i)) {
+        _i.first = -1; _i.second = 0;
+        return;
+    }
+    ++_i.second;
+    if (_i.first == 0 && _i.second >= this->_bucket_count) {
+        if (this->_rehash_policy._in_rehash) {
+            _i.first = 1; _i.second = 0;
+        }
+        else {
+            _i.first = -1; _i.second = 0;
+        }
+    }
+    // if %_i.first == 1, then %_rehash_policy._in_rehash = true
+    if (_i.first == 1 && _i.second >= this->_rehash_bucket_count) {
+        _i.first = -1; _i.second = 0;
+    }
+};
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::_M_bucket(const bucket_index& _i) const
+-> bucket_type {
+    if (!_M_valid_bucket_index(_i)) {
+        return nullptr;
+    }
+    if (_i.first == 1 && _rehash_policy._in_rehash) {
+        return this->_rehash_buckets[_i.second];
+    }
+    else if (_i.first == 0) {
+        return this->_buckets[_i.second];
+    }
+    return nullptr;
+}
+
 };
 
 #endif  // _ASP_HASH_TABLE_HPP_

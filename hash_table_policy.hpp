@@ -26,6 +26,9 @@ extern const unsigned long _prime_list[] = {
 
 struct rehash_policy {
     typedef size_type _State;
+    // (0, x) indicates _buckets[x]
+    // (1, y) indicates _rehash_buckets[y]
+    typedef std::pair<short, size_type> bucket_index;
 
     rehash_policy(float _z = 1.0) : _max_load_factor(_z), _next_resize(0) {}
 
@@ -58,6 +61,8 @@ struct rehash_policy {
     float _max_load_factor;  // = _n_elt / _n_bkt
     // resize 后，能保存元素个数的最佳上限
     mutable size_type _next_resize; // = _n_bkt * _max_load_factor
+    bool _in_rehash = false;
+    bucket_index _cur_process;
 };
 
 template <typename _Tp> struct hash_node : public node<_Tp> {
@@ -73,6 +78,13 @@ template <typename _Tp> struct hash_node : public node<_Tp> {
     
     self* _next = nullptr;
     hash_code _hash_code;
+
+    friend bool operator==(const self& _x, const self& _y) {
+        return _x._hash_code == _y._hash_code && base::operator==(_x, _y);
+    }
+    friend bool operator!=(const self& _x, const self& _y) {
+        return _x._hash_code != _y._hash_code || base::operator!=(_x, _y);
+    }
 };
 
 template <typename _Value, typename _Alloc> struct hash_table_alloc : public _Alloc {

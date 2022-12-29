@@ -10,6 +10,7 @@ template <typename _Tp> struct node;
 
 template <typename _Tp> struct node {
     // typedef typename _Tp value_type;
+    typedef node<_Tp> self;
     using value_type = _Tp;
     using pointer = _Tp*;
     using reference = _Tp&;
@@ -41,6 +42,12 @@ template <typename _Tp> struct node {
 
     virtual operator bool() const {
         return _pt.get() != nullptr;
+    }
+    friend bool operator==(const self& _x, const self& _y) {
+        return _x.val() == _y.val();
+    }
+    friend bool operator!=(const self& _x, const self& _y) {
+        return _x.val() != _y.val();
     }
     
 private:
