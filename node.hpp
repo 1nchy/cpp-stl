@@ -15,6 +15,7 @@ template <typename _Tp> struct node {
     using pointer = _Tp*;
     using reference = _Tp&;
     node(): _pt(std::make_unique<value_type>()) {}
+    template <typename... _Args> node(_Args&&... _args): _pt(std::make_unique(std::forward<_Args>(_args)...)) {}
     node(const value_type& t): _pt(std::make_unique<value_type>(t)) {}
     node(const node<value_type>& rhs): _pt(std::make_unique<value_type>(rhs.val())) {}
     node(node<value_type>&& rhs): _pt(rhs._pt) {}

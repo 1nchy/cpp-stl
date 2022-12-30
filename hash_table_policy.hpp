@@ -75,7 +75,10 @@ template <typename _Tp> struct hash_node : public node<_Tp> {
     typedef size_type hash_code;
 
     hash_node() : base() {}
+    hash_node(const value_type& _v): base(_v) {}
+    template <typename... _Args> hash_node(_Args&&... _args): base(std::forward<_Args>(_args)...) {}
     hash_node(const hash_node& r) : base(r) {}
+    virtual ~hash_node() = default;
     
     self* _next = nullptr;
     hash_code _hash_code;
