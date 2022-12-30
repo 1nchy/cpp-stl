@@ -173,6 +173,9 @@ public:
 
     _ExtractKey _extract_key;
 
+    template <typename _K, typename _V, typename _EK, typename _H, typename _A>
+     friend std::ostream& operator<<(std::ostream& os, const hash_table<_K, _V, _EK, _H, _A>& _h);
+
 public:
     hash_table();
     // hash_table(const self& _r);
@@ -204,7 +207,7 @@ public:
         return static_cast<node_type*>(_bkt);
     }
     hash_code _M_hash_code(const key_type& _k) const;
-    bool _M_equals(const key_type& _k, hash_code _c, node_type* _p) const;
+    bool _M_equals(const key_type& _k, hash_code _c, const node_type* _p) const;
 
     bool _M_valid_bucket_index(const bucket_index& _i) const;
     /**
@@ -221,7 +224,7 @@ public:
     */
     bucket_index _M_bucket_find_index(const key_type& _k, hash_code _c) const;
     bucket_index _M_bucket_find_index(const node_type* _p) const {
-        return _M_bucket_find_index(this->_extract_key(_p->_val()), _p->_hash_code);
+        return _M_bucket_find_index(this->_extract_key(_p->val()), _p->_hash_code);
     }
 
     void _M_next_bucket_index(bucket_index& _i) const;
@@ -281,7 +284,7 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_hash_code(const key_typ
 
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::
-_M_equals(const key_type& _k, hash_code _c, node_type* _p) const
+_M_equals(const key_type& _k, hash_code _c, const node_type* _p) const
 -> bool {
     return _k == this->_extract_key(_p->val());
 }
@@ -346,11 +349,13 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_next_bucket_index(bucke
             }
             else {
                 _i.first = -1; _i.second = 0;
+                break;
             }
         }
         // if %_i.first == 1, then %_rehash_policy._in_rehash = true
         if (_i.first == 1 && _i.second >= this->_rehash_bucket_count) {
             _i.first = -1; _i.second = 0;
+            break;
         }
     } while (this->_M_bucket(_i) == nullptr);
 };
@@ -399,12 +404,9 @@ _M_find_before_node(const bucket_index& _i, const key_type& _k, hash_code _c) co
 -> node_type* {
     node_type* _head = this->_M_bucket(_i);
     if (_head == nullptr) return nullptr;
-    for (node_type* _p = _head->_next; _head != nullptr; _p = _p->_next) {
+    for (node_type* _p = _head->_next; _p != nullptr; _p = _p->_next) {
         if (this->_M_equals(_k, _c, _p)) {
             return _head;
-        }
-        if (_p->_next == nullptr) {
-            break;
         }
         _head = _p;
     }
@@ -416,14 +418,8 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::
 _M_insert_bucket_begin(const bucket_index& _i, node_type* _n)
 -> void {
     bucket_type _hint = this->_M_bucket(_i);
-    if (_hint != nullptr) {
-        _n->_next = _hint->_next;
-        _hint->_next = _n;
-    }
-    else {
-        _n->_next = nullptr;
-        this->_M_bucket_ref(_i) = _n;
-    }
+    _n->_next = _hint;
+    this->_M_bucket_ref(_i) = _n;
 };
 
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
@@ -452,8 +448,8 @@ _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n)
     _n->_hash_code = _c;
     const node_type* _hint = this->_M_bucket(_i);
     const key_type& _k = this->_extract_key(_n->val());
-    node_type* _prev = (_hint != nullptr && this->_M_equals(_k, _c, _hint)) ?
-     _hint : _M_find_before_node(_i, _k, _c);
+    node_type* _prev = ((_hint != nullptr && this->_M_equals(_k, _c, _hint)) ?
+     this->_M_bucket(_i) : _M_find_before_node(_i, _k, _c));
     if (_prev != nullptr) {
         _n->_next = _prev->_next;
         _prev->_next = _n;
@@ -524,6 +520,23 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_erase(const key_type& _
         return iterator(nullptr, this);
     }
     return this->_M_erase_node(_i, _k, _c);
+};
+
+
+
+/// output stream
+template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
+operator<<(std::ostream& os, const hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>& _h)
+-> std::ostream& {
+    os << '[';
+    for (auto p = _h.cbegin(); p != _h.cend();) {
+        os << *p;
+        if (++p != _h.cend()) {
+            os << ", ";
+        }
+    }
+    os << ']';
+    return os;
 };
 
 };
