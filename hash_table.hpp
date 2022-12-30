@@ -215,9 +215,11 @@ public:
     node_type* _M_find_before_node(const bucket_index& _i, const key_type& _k, hash_code _c) const;
 
     void _M_insert_bucket_begin(const bucket_index& _i, node_type* _n);
+    void _M_remove_bucket_begin(const bucket_index& _i);
 
     iterator _M_insert_unique_node(const bucket_index& _i, hash_code _c, node_type* _n);
     iterator _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n);
+    iterator _M_erase(const bucket_index& _i, node_type* _n);
     /// implement
 };
 
@@ -373,6 +375,15 @@ _M_insert_bucket_begin(const bucket_index& _i, node_type* _n)
 };
 
 template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::_M_remove_bucket_begin(const bucket_index& _i)
+-> void {
+    bucket_type _hint = this->_M_bucket(_i);
+    if (_hint != nullptr) {
+        this->_M_bucket_ref(_i) = _hint->_next;
+    }
+};
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _Hash, _Alloc>::
 _M_insert_unique_node(const bucket_index& _i, hash_code _c, node_type* _n)
 -> iterator {
@@ -387,7 +398,7 @@ hash_table<_Key, _Value, _Hash, _Alloc>::
 _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n)
 -> iterator {
     _n->_hash_code = _c;
-    node_type* _hint = this->_M_bucket(_i);
+    const node_type* _hint = this->_M_bucket(_i);
     const key_type& _k = this->_extract_key(_n->val());
     node_type* _prev = (_hint != nullptr && this->_M_equals(_k, _c, _hint)) ?
      _hint : _M_find_before_node(_i, _k, _c);
@@ -400,6 +411,25 @@ _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n)
     }
     ++_element_count;
     return iterator(_n, this);
+};
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::_M_erase(const bucket_index& _i, node_type* _n)
+-> iterator {
+    const node_type* _hint = this->_M_bucket(_i);
+    const key_type& _k = this->_extract_key(_n->val());
+    node_type* _prev = (_hint != nullptr && this->_M_equals(_k, _n->_hash_code, _hint)) ?
+     _hint : _M_find_before_node(_i, _k, _n->_hash_code);
+    if (_prev != nullptr) {
+        _prev->_next = _n->_next;
+    }
+    else {
+        _M_remove_bucket_begin(_i);
+    }
+    iterator _result(_n->_next, this);
+    this->_M_deallocate_node(_n);
+    --_element_count;
+    return _result;
 };
 
 };
