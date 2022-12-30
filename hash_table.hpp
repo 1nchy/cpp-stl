@@ -245,24 +245,14 @@ hash_table<_Key, _Value, _Hash, _Alloc>::_M_valid_bucket_index(const bucket_inde
 template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _Hash, _Alloc>::_M_bucket_insert_index(const node_type* _p) const
 -> bucket_index {
+    // always insert %_p into _rehash_bucket if %_in_rehash
     if (this->_rehash_policy._in_rehash) {
-
+        bucket_index _i1 = std::make_pair(1, _p->_hash_code % this->_rehash_bucket_count);
+        return _i1;
     }
+    // always insert %_p into _bucket if not %_in_rehash
     bucket_index _i0 = std::make_pair(0, _p->_hash_code % this->_bucket_count);
-    node_type* _bkt = this->_buckets[_i0.second];
-    if (_bkt != nullptr) {
-        return _i0;
-    }
-    bucket_index _i1 = std::make_pair(1, _p->_hash_code % this->_rehash_bucket_count);
-    if (this->_rehash_policy._in_rehash) {
-        _bkt = this->_rehash_buckets[_i1.second];
-        while (_bkt != nullptr) {
-            if (*_bkt == *_p) {
-                return _i1;
-            }
-        }
-    }
-    return std::make_pair(-1, 0);
+    return _i0;
 };
 
 template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
