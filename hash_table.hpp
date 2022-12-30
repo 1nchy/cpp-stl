@@ -49,7 +49,7 @@ template <typename _Key, typename _Value, typename _ExtractKey, bool _Constant, 
     hash_node_iterator(_node_type* _p, const _hash_table* _h) : _cur(_p), _ht(_h) {}
     hash_node_iterator(const self& _s) : _cur(_s._cur), _ht(_s._ht) {}
     hash_node_iterator(self&& _s) : _cur(std::move(_s._cur)), _ht(std::move(_s._ht)) {}
-    void _M_incr() {
+    virtual void _M_incr() {
         const _node_type* _old = _cur;
         _cur = _cur->_next;
         if (_cur == nullptr) {
@@ -286,6 +286,7 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::hash_table() {
 
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc>
 hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::~hash_table() {
+    clear();
     this->_M_deallocate_buckets();
     _buckets = nullptr; _bucket_count = 0;
     _rehash_buckets = nullptr; _rehash_bucket_count = 0;
@@ -576,12 +577,15 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::count(const key_type& _k)
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::clear()
 -> void {
-    iterator _b = this->begin();
-    while (_b != this->end()) {
-        node_type* _n = _b._cur;
-        _b->_M_incr();
-        this->_M_deallocate_node(_n);
+    for (bucket_index _i(0, 0); this->_M_valid_bucket_index(_i); this->_M_next_bucket_index(_i)) {
+        for (node_type* _p = this->_M_bucket(_i); _p != nullptr;) {
+            node_type* _tmp = _p->_next;
+            this->_M_deallocate_node(_p);
+            _p = _tmp;
+        }
+        this->_M_bucket_ref(_i) = nullptr;
     }
+    this->_element_count = 0;
 };
 
 
