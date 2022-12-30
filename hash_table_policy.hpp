@@ -130,7 +130,13 @@ template <typename _Value, typename _Alloc> struct hash_table_alloc : public _Al
     }
 };
 
-struct _ExtractKey {
+struct _select_self {
+    template <typename _Tp> auto operator()(_Tp&& _x) const {
+        return std::forward<_Tp>(_x);
+    }
+};
+
+struct _select_0x {
     template <typename _Tp> auto operator()(_Tp&& _x) const {
         return std::get<0>(std::forward<_Tp>(_x));
     }
