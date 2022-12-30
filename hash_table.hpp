@@ -90,6 +90,9 @@ template <typename _Key, typename _Value, typename _ExtractKey, bool _Constant, 
     self& operator=(self&& _s) {
         _cur = std::move(_s._cur);
     }
+    virtual operator bool() const {
+        return _cur != nullptr && _ht != nullptr;
+    }
     friend bool operator==(const self& _x, const self& _y) {
         return _x._cur == _y._cur && _x._ht == _y._ht;
     }
@@ -98,6 +101,9 @@ template <typename _Key, typename _Value, typename _ExtractKey, bool _Constant, 
     }
     template <typename _K, typename _V, typename _EK, typename _H, typename _A>
      friend std::ostream& operator<<(std::ostream& os, const hash_table<_K, _V, _EK, _H, _A>& _h);
+    
+    template <typename _K, typename _V, typename _EK, bool _C, typename _H, typename _A>
+     friend std::ostream& operator<<(std::ostream& os, const hash_node_iterator<_K, _V, _EK, _C, _H, _A>& _h);
 
 protected:
     bool _M_next_nullptr() const {
@@ -197,7 +203,9 @@ public:
     size_type bucket_count() const { return _rehash_policy._in_rehash ? _rehash_bucket_count : _bucket_count; }
 
     iterator find(const key_type& _k);
+    const_iterator find(const key_type& _k) const;
     size_type count(const key_type& _k);
+    void clear();
 
     void _M_deallocate_buckets() {
         base::_M_deallocate_buckets(_buckets, _bucket_count);
@@ -529,6 +537,53 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_erase(const key_type& _
     return this->_M_erase_node(_i, _k, _c);
 };
 
+template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::find(const key_type& _k)
+-> iterator {
+    hash_code _c = this->_M_hash_code(_k);
+    const bucket_index _i = this->_M_bucket_find_index(_k, _c);
+    node_type* _p = this->_M_find_node(_i, _k, _c);
+    return iterator(_p, this);
+};
+template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::find(const key_type& _k) const
+-> const_iterator {
+    hash_code _c = this->_M_hash_code(_k);
+    const bucket_index _i = this->_M_bucket_find_index(_k, _c);
+    node_type* _p = this->_M_find_node(_i, _k, _c);
+    return const_iterator(_p, this);
+};
+template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::count(const key_type& _k)
+-> size_type {
+    hash_code _c = this->_M_hash_code(_k);
+    const bucket_index _i = this->_M_bucket_find_index(_k, _c);
+    if (!this->_M_valid_bucket_index(_i)) {
+        return 0;
+    }
+    node_type* _p = this->_M_find_node(_i, _k, _c);
+    if (_p == nullptr) {
+        return 0;
+    }
+    size_type _cnt = 0;
+    for (; _p != nullptr; _p = _p->_next) {
+        if (this->_M_equals(_k, _c, _p)) {
+            ++_cnt;
+        }
+    }
+    return _cnt;
+};
+template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::clear()
+-> void {
+    iterator _b = this->begin();
+    while (_b != this->end()) {
+        node_type* _n = _b._cur;
+        _b->_M_incr();
+        this->_M_deallocate_node(_n);
+    }
+};
+
 
 
 /// output stream
@@ -546,6 +601,18 @@ operator<<(std::ostream& os, const hash_table<_Key, _Value, _ExtractKey, _Hash, 
     os << ']';
     return os;
 };
+
+template <typename _Key, typename _Value, typename _ExtractKey, bool _Constant, typename _Hash, typename _Alloc> auto
+operator<<(std::ostream& os, const hash_node_iterator<_Key, _Value, _ExtractKey, _Constant, _Hash, _Alloc>& _h)
+-> std::ostream& {
+    if (_h) {
+        os << *_h;
+    }
+    else {
+        os << "null";
+    }
+    return os;
+}
 
 };
 
