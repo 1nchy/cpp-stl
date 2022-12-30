@@ -320,8 +320,8 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_bucket_find_index(const
             return _i0;
         }
     }
-    bucket_index _i1 = std::make_pair(1, _c % this->_rehash_bucket_count);
     if (this->_rehash_policy._in_rehash) {
+        bucket_index _i1 = std::make_pair(1, _c % this->_rehash_bucket_count);
         for (node_type* _bkt = this->_rehash_buckets[_i1.second]; _bkt != nullptr; _bkt = _bkt->_next) {
             if (this->_M_equals(_k, _c, _bkt)) {
                 return _i1;
