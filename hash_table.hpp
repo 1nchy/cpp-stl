@@ -38,29 +38,32 @@ template <typename _Key, typename _Value, typename _ExtractKey, bool _Constant, 
     typedef typename _hash_table::node_type node_type;
     typedef typename _hash_table::value_type value_type;
     typedef typename _hash_table::bucket_type bucket_type;
+    typedef typename _hash_table::bucket_index bucket_index;
 
     typedef typename asp::conditional_t<_Constant, const node_type, node_type> _node_type;
     typedef typename asp::conditional_t<_Constant, const value_type, value_type> _value_type;
 
     _node_type* _cur = nullptr;
+    bucket_index _bi = _hash_table::_s_illegal_index;
     const _hash_table* _ht = nullptr;
 
     hash_node_iterator() = default;
-    hash_node_iterator(_node_type* _p, const _hash_table* _h) : _cur(_p), _ht(_h) {}
-    hash_node_iterator(const self& _s) : _cur(_s._cur), _ht(_s._ht) {}
-    hash_node_iterator(self&& _s) : _cur(std::move(_s._cur)), _ht(std::move(_s._ht)) {}
+    hash_node_iterator(_node_type* _p, const _hash_table* _h) : _cur(_p), _ht(_h), _bi(_h->_M_bucket_find_index(_p)) {}
+    hash_node_iterator(const bucket_index& _i, const _hash_table* _h) : _cur(_h->_M_bucket(_i)), _bi(_i), _ht(_h) {}
+    hash_node_iterator(_node_type* _p, const bucket_index& _i, const _hash_table* _h) : _cur(_p), _ht(_h), _bi(_i) {}
+    hash_node_iterator(const self& _s) : _cur(_s._cur), _bi(_s._bi), _ht(_s._ht) {}
+    hash_node_iterator(self&& _s) : _cur(std::move(_s._cur)), _bi(std::move(_s._bi)), _ht(std::move(_s._ht)) {}
     virtual void _M_incr() {
         const _node_type* _old = _cur;
         _cur = _cur->_next;
         if (_cur == nullptr) {
-            auto _bkt = _ht->_M_bucket_find_index(_old);
             while (_cur == nullptr) {
-                _ht->_M_next_bucket_index(_bkt);
-                if (_bkt.first == -1) {
+                _ht->_M_next_bucket_index(_bi);
+                if (_bi.first == -1) {
                     _cur = nullptr;
                     break;
                 }
-                _cur = _ht->_M_bucket(_bkt);
+                _cur = _ht->_M_bucket(_bi);
             }
         }
     }
@@ -120,9 +123,12 @@ template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, 
 
     typedef typename base::_node_type node_type;
     typedef typename base::_hash_table _hash_table;
+    typedef typename base::bucket_index bucket_index;
 
     hash_iterator() = default;
     hash_iterator(node_type* _p, const _hash_table* _h) : base(_p, _h) {}
+    hash_iterator(const bucket_index& _i, const _hash_table* _h) : base(_i, _h) {}
+    hash_iterator(node_type* _p, const bucket_index& _i, const _hash_table* _h) : base(_p, _i, _h) {}
     hash_iterator(const self& _s) : base(_s) {}
     hash_iterator(self&& _s) : base(std::move(_s)) {}
 
@@ -140,14 +146,19 @@ template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, 
 
     typedef typename base::_node_type node_type;
     typedef typename base::_hash_table _hash_table;
+    typedef typename base::bucket_index bucket_index;
 
     hash_const_iterator() = default;
-    hash_const_iterator(node_type* _p, const _hash_table* _h) : base(_p, _h) {}
+    hash_const_iterator(const node_type* _p, const _hash_table* _h) : base(_p, _h) {}
+    hash_const_iterator(const bucket_index& _i, const _hash_table* _h) : base(_i, _h) {}
+    hash_const_iterator(const node_type* _p, const bucket_index& _i, const _hash_table* _h) : base(_p, _i, _h) {}
     hash_const_iterator(const self& _s) : base(_s) {}
     hash_const_iterator(self&& _s) : base(std::move(_s)) {}
+    hash_const_iterator(const iterator& _it) : base(_it) {}
+    hash_const_iterator(iterator&& _it) : base(std::move(_it)) {}
 
     iterator _const_cast() const {
-        return iterator(const_cast<node_type*>(this->_cur), this->_ht);
+        return iterator(const_cast<node_type*>(this->_cur), this->_bi, this->_ht);
     }
 };
 
@@ -175,6 +186,7 @@ public:
     typedef hash_const_iterator<_Key, _Value, _ExtractKey, _Hash, _Alloc> const_iterator;
 
     typedef rehash_policy::bucket_index bucket_index;
+    static const bucket_index _s_illegal_index;
 
     bucket_type* _buckets = nullptr;
     size_type _bucket_count = 0;
@@ -197,8 +209,8 @@ public:
 
     iterator begin() { return iterator(_M_begin(), this); }
     const_iterator cbegin() const { return const_iterator(_M_begin(), this); }
-    iterator end() { return iterator(nullptr, this); }
-    const_iterator cend() const { return const_iterator(nullptr, this); }
+    iterator end() { return iterator(nullptr, self::_s_illegal_index, this); }
+    const_iterator cend() const { return const_iterator(nullptr, self::_s_illegal_index, this); }
     size_type size() const { return _element_count; }
     size_type bucket_count() const { return _rehash_policy._in_rehash ? _rehash_bucket_count : _bucket_count; }
 
@@ -212,14 +224,13 @@ public:
         base::_M_deallocate_buckets(_rehash_buckets, _rehash_bucket_count);
     }
 
-    node_type* _M_begin() const {
+    bucket_index _M_begin() const {
         bucket_index _i(0, 0);
         bucket_type _bkt = this->_M_bucket(_i);
         if (_bkt == nullptr) {
             this->_M_next_bucket_index(_i);
-            _bkt = this->_M_bucket(_i);
         }
-        return static_cast<node_type*>(_bkt);
+        return _i;
     }
     hash_code _M_hash_code(const key_type& _k) const;
     bool _M_equals(const key_type& _k, hash_code _c, const node_type* _p) const;
@@ -347,7 +358,7 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_bucket_find_index(const
             }
         }
     }
-    return std::make_pair(-1, 0);
+    return _s_illegal_index;
 };
 
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
@@ -454,7 +465,7 @@ _M_insert_unique_node(const bucket_index& _i, hash_code _c, node_type* _n)
     _n->_hash_code = _c;
     this->_M_insert_bucket_begin(_i, _n);
     ++_element_count;
-    return iterator(_n, this);
+    return iterator(_n, _i, this);
 };
 
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
@@ -474,7 +485,7 @@ _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n)
         _M_insert_bucket_begin(_i, _n);
     }
     ++_element_count;
-    return iterator(_n, this);
+    return iterator(_n, _i, this);
 };
 
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
@@ -486,7 +497,9 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_erase_node(const bucket
     }
     node_type* _prev = (this->_M_equals(_k, _c, _hint)) ?
      nullptr : _M_find_before_node(_i, _k, _c);
-    node_type* _n = _hint;
+    node_type* _n = (_prev != nullptr ? _prev->_next : _hint);
+    iterator _result(_n, _i, this);
+    _result._M_incr();
     if (_prev != nullptr) {
         _n = _prev->_next;
         _prev->_next = _n->_next;
@@ -494,7 +507,6 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_erase_node(const bucket
     else {
         _M_remove_bucket_begin(_i);
     }
-    iterator _result(_n->_next, this);
     this->_M_deallocate_node(_n);
     --_element_count;
     return _result;
@@ -509,7 +521,7 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_insert_unique(const val
     if (this->_M_valid_bucket_index(_i)) {
         node_type* _n = this->_M_bucket(_i);
         if (_n != nullptr) {
-            return iterator(_n, this);
+            return iterator(_n, _i, this);
         }
     }
     _i = this->_M_bucket_insert_index(_c);
@@ -533,7 +545,7 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_erase(const key_type& _
     const hash_code _c = this->_M_hash_code(_k);
     bucket_index _i = this->_M_bucket_find_index(_k, _c);
     if (!this->_M_valid_bucket_index(_i)) {
-        return iterator(nullptr, this);
+        return iterator(nullptr, _s_illegal_index, this);
     }
     return this->_M_erase_node(_i, _k, _c);
 };
@@ -544,7 +556,7 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::find(const key_type& _k)
     hash_code _c = this->_M_hash_code(_k);
     const bucket_index _i = this->_M_bucket_find_index(_k, _c);
     node_type* _p = this->_M_find_node(_i, _k, _c);
-    return iterator(_p, this);
+    return iterator(_p, _i, this);
 };
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::find(const key_type& _k) const
@@ -552,7 +564,7 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::find(const key_type& _k) c
     hash_code _c = this->_M_hash_code(_k);
     const bucket_index _i = this->_M_bucket_find_index(_k, _c);
     node_type* _p = this->_M_find_node(_i, _k, _c);
-    return const_iterator(_p, this);
+    return const_iterator(_p, _i, this);
 };
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::count(const key_type& _k)
@@ -588,6 +600,12 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::clear()
     this->_element_count = 0;
 };
 
+
+/// constexpr static const member
+template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc>
+constexpr const rehash_policy::bucket_index
+hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_s_illegal_index
+ = bucket_index(-1, 0);
 
 
 /// output stream
