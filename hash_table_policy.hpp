@@ -103,30 +103,38 @@ template <typename _Value, typename _Alloc> struct hash_table_alloc : public _Al
 
     elt_allocator_type& _M_get_elt_allocator() { return *static_cast<elt_allocator_type*>(this); }
     const elt_allocator_type& _M_get_elt_allocator() const { return *static_cast<const elt_allocator_type*>(this); }
-    node_allocator_type& _M_get_node_allocator() { return node_allocator_type(_M_get_elt_allocator()); }
-    bucket_allocator_type& _M_get_bucket_allocator() { return bucket_allocator_type(_M_get_elt_allocator()); }
+    node_allocator_type _M_get_node_allocator() const { return node_allocator_type(_M_get_elt_allocator()); }
+    bucket_allocator_type _M_get_bucket_allocator() const { return bucket_allocator_type(_M_get_elt_allocator()); }
 
     node_type* _M_allocate_node(const node_type& _x) {
-        auto _ptr = node_alloc_traits::allocate(_M_get_node_allocator(), 1);
+        node_allocator_type _node_alloc = _M_get_node_allocator();
+        auto _ptr = node_alloc_traits::allocate(_node_alloc, 1);
         node_type* _p = std::addressof(*_ptr);
-        node_alloc_traits::construct(_M_get_node_allocator(), _p, _x);
+        node_alloc_traits::construct(_node_alloc, _p, _x);
+        return _p;
     }
     template <typename... _Args> node_type* _M_allocate_node(_Args&&... _args) {
-        auto _ptr = node_alloc_traits::allocate(_M_get_node_allocator(), 1);
+        node_allocator_type _node_alloc = _M_get_node_allocator();
+        auto _ptr = node_alloc_traits::allocate(_node_alloc, 1);
         node_type* _p = std::addressof(*_ptr);
-        node_alloc_traits::construct(_M_get_node_allocator(), _p, std::forward<_Args>(_args)...);
+        node_alloc_traits::construct(_node_alloc, _p, std::forward<_Args>(_args)...);
+        return _p;
     }
     void _M_deallocate_node(node_type* _p) {
-        node_alloc_traits::destroy(_M_get_node_allocator(), _p);
-        node_alloc_traits::deallocate(_M_get_node_allocator(), _p, 1);
+        node_allocator_type _node_alloc = _M_get_node_allocator();
+        node_alloc_traits::destroy(_node_alloc, _p);
+        node_alloc_traits::deallocate(_node_alloc, _p, 1);
     }
     bucket_type* _M_allocate_buckets(size_type _n) {
-        auto _ptr = bucket_alloc_traits::allocate(_M_get_bucket_allocator(), _n);
+        bucket_allocator_type _bucket_alloc = _M_get_bucket_allocator();
+        auto _ptr = bucket_alloc_traits::allocate(_bucket_alloc, _n);
         bucket_type* _p = std::addressof(*_ptr);
         bzero(_p, _n * sizeof(bucket_type));
+        return _p;
     }
     void _M_deallocate_buckets(bucket_type* _p, size_type _n) {
-        bucket_alloc_traits::deallocate(_M_get_bucket_allocator(), _p, _n);
+        bucket_allocator_type _bucket_alloc = _M_get_bucket_allocator();
+        bucket_alloc_traits::deallocate(_bucket_alloc, _p, _n);
     }
 };
 

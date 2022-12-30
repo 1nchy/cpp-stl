@@ -46,7 +46,7 @@ template <typename _Key, typename _Value, typename _ExtractKey, bool _Constant, 
     const _hash_table* _ht = nullptr;
 
     hash_node_iterator() = default;
-    hash_node_iterator(const _node_type* _p, const _hash_table* _h) : _cur(_p), _ht(_h) {}
+    hash_node_iterator(_node_type* _p, const _hash_table* _h) : _cur(_p), _ht(_h) {}
     hash_node_iterator(const self& _s) : _cur(_s._cur), _ht(_s._ht) {}
     hash_node_iterator(self&& _s) : _cur(std::move(_s._cur)), _ht(std::move(_s._ht)) {}
     void _M_incr() {
@@ -190,8 +190,8 @@ public:
     size_type count(const key_type& _k);
 
     void _M_deallocate_buckets() {
-        _M_deallocate_buckets(_buckets, _bucket_count);
-        _M_deallocate_buckets(_rehash_buckets, _rehash_bucket_count);
+        base::_M_deallocate_buckets(_buckets, _bucket_count);
+        base::_M_deallocate_buckets(_rehash_buckets, _rehash_bucket_count);
     }
 
     node_type* _M_begin() const {
