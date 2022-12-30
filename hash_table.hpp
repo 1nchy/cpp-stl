@@ -96,6 +96,13 @@ template <typename _Key, typename _Value, typename _ExtractKey, bool _Constant, 
     friend bool operator!=(const self& _x, const self& _y) {
         return _x._cur != _y._cur || _x._ht != _y._ht;
     }
+    template <typename _K, typename _V, typename _EK, typename _H, typename _A>
+     friend std::ostream& operator<<(std::ostream& os, const hash_table<_K, _V, _EK, _H, _A>& _h);
+
+protected:
+    bool _M_next_nullptr() const {
+        return _cur == nullptr || _cur->_next == nullptr;
+    }
 };
 
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc>
@@ -531,8 +538,9 @@ operator<<(std::ostream& os, const hash_table<_Key, _Value, _ExtractKey, _Hash, 
     os << '[';
     for (auto p = _h.cbegin(); p != _h.cend();) {
         os << *p;
+        bool _next_null = static_cast<hash_node_iterator<_Key, _Value, _ExtractKey, true, _Hash, _Alloc>>(p)._M_next_nullptr();
         if (++p != _h.cend()) {
-            os << ", ";
+            os << (_next_null ? "; " : ", ");
         }
     }
     os << ']';
