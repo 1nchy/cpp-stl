@@ -208,12 +208,16 @@ public:
     bucket_index _M_bucket_find_index(const node_type* _p) const;
     void _M_next_bucket_index(bucket_index& _i) const;
     bucket_type _M_bucket(const bucket_index& _i) const;
+    bucket_type& _M_bucket_ref(const bucket_index& _i) const;
     // find node {_k, _c} in _bucket[_i]
     node_type* _M_find_node(const bucket_index& _i, const key_type& _k, hash_code _c) const;
-    // find node before {_k, _c} in _bucket[_i]
+    // find node whose %_next = {_k, _c} in _bucket[_i], only used in multi-insert and erase
     node_type* _M_find_before_node(const bucket_index& _i, const key_type& _k, hash_code _c) const;
 
+    void _M_insert_bucket_begin(const bucket_index& _i, node_type* _n);
 
+    iterator _M_insert_unique_node(const bucket_index& _i, hash_code _c, node_type* _n);
+    iterator _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n);
     /// implement
 };
 
@@ -313,6 +317,15 @@ hash_table<_Key, _Value, _Hash, _Alloc>::_M_bucket(const bucket_index& _i) const
 };
 
 template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::_M_bucket_ref(const bucket_index& _i) const
+-> bucket_type& {
+    if (_i.first == 1) {
+        return this->_rehash_buckets[_i.second];
+    }
+    return this->_buckets[_i.second];
+};
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _Hash, _Alloc>::
 _M_find_node(const bucket_index& _i, const key_type& _k, hash_code _c) const
 -> node_type* {
@@ -342,7 +355,52 @@ _M_find_before_node(const bucket_index& _i, const key_type& _k, hash_code _c) co
         _head = _p;
     }
     return nullptr;
-}
+};
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::
+_M_insert_bucket_begin(const bucket_index& _i, node_type* _n)
+-> void {
+    bucket_type _hint = this->_M_bucket(_i);
+    if (_hint != nullptr) {
+        _n->_next = _hint->_next;
+        _hint->_next = _n;
+    }
+    else {
+        _n->_next = nullptr;
+        this->_M_bucket_ref(_i) = _n;
+    }
+};
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::
+_M_insert_unique_node(const bucket_index& _i, hash_code _c, node_type* _n)
+-> iterator {
+    _n->_hash_code = _c;
+    this->_M_insert_bucket_begin(_i, _n);
+    ++_element_count;
+    return iterator(_n, this);
+};
+
+template <typename _Key, typename _Value, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _Hash, _Alloc>::
+_M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n)
+-> iterator {
+    _n->_hash_code = _c;
+    node_type* _hint = this->_M_bucket(_i);
+    const key_type& _k = this->_extract_key(_n->val());
+    node_type* _prev = (_hint != nullptr && this->_M_equals(_k, _c, _hint)) ?
+     _hint : _M_find_before_node(_i, _k, _c);
+    if (_prev != nullptr) {
+        _n->_next = _prev->_next;
+        _prev->_next = _n;
+    }
+    else {
+        _M_insert_bucket_begin(_i, _n);
+    }
+    ++_element_count;
+    return iterator(_n, this);
+};
 
 };
 
