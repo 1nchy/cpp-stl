@@ -216,7 +216,7 @@ public:
 
     iterator find(const key_type& _k);
     const_iterator find(const key_type& _k) const;
-    size_type count(const key_type& _k);
+    size_type count(const key_type& _k) const;
     void clear();
 
     void _M_deallocate_buckets() {
@@ -567,7 +567,7 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::find(const key_type& _k) c
     return const_iterator(_p, _i, this);
 };
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
-hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::count(const key_type& _k)
+hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::count(const key_type& _k) const
 -> size_type {
     hash_code _c = this->_M_hash_code(_k);
     const bucket_index _i = this->_M_bucket_find_index(_k, _c);
