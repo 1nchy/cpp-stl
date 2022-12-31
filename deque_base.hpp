@@ -11,12 +11,14 @@ namespace asp {
 
 #ifndef _ASP_DEQUE_BUF_SIZE
 // Bit size of one node
-#define _ASP_DEQUE_BUF_SIZE 512
+#define _ASP_DEQUE_BUF_SIZE 32
 #endif
 
 template <typename _Tp> struct deque_data;
 template <typename _Tp, typename _Alloc = std::allocator<_Tp>> struct deque_impl;
 template <typename _Tp, typename _Alloc = std::allocator<_Tp>> struct deque_base;
+
+template <typename _Tp, typename _Alloc = std::allocator<_Tp>> class deque;
 
 // not only an iterator, but also sentinel of deque_base
 template <typename _Tp, typename _Ref = _Tp&, typename _Ptr = _Tp*> struct deque_iterator;
@@ -144,6 +146,12 @@ template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator {
         _node = _new_node;
         _first = *_node;
         _last = _first + difference_type(data_type::_S_buffer_size());
+    }
+
+    template <typename _T, typename _A> friend std::ostream& operator<<(std::ostream& os, const deque<_T, _A>& d);
+protected:
+    bool _M_next_block() const {
+        return _cur + 1 == _last;
     }
 };
 

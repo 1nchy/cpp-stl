@@ -8,7 +8,7 @@
 
 namespace asp {
 
-template <typename _Tp, typename _Alloc = std::allocator<_Tp>> class deque;
+// template <typename _Tp, typename _Alloc = std::allocator<_Tp>> class deque;
 
 template <typename _Tp, typename _Alloc> class deque : public deque_base<_Tp, _Alloc> {
     typedef deque_base<_Tp, _Alloc> base;
@@ -183,12 +183,12 @@ public:
 
 
     /// ostream
-    template <typename _R> friend std::ostream& operator<<(std::ostream& os, const deque<_R>& d) {
+    template <typename _T, typename _A> friend std::ostream& operator<<(std::ostream& os, const deque<_T, _A>& d) {
         os << '[';
         for (auto p = d.cbegin(); p != d.cend(); ++p) {
             os << *p;
             if (p + 1 != d.cend()) {
-                os << ", ";
+                os << (p._M_next_block() ? "; " : ", ");
             }
         }
         os << ']';
