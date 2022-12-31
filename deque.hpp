@@ -383,10 +383,10 @@ protected:
             push_back(std::move(back()));
             iterator _old_finish = this->_data._finish;
             --_old_finish;
-            iterator _old_2rd_finish = _old_finish;
-            --_old_2rd_finish;
+            iterator _old_2nd_finish = _old_finish;
+            --_old_2nd_finish;
             _pos = this->_data._start + _index;
-            this->_M_range_copy(_pos, _old_2rd_finish, _old_finish);
+            this->_M_range_copy_backward(_pos, _old_2nd_finish, _old_finish);
         }
         *_pos = _x_copy;
         return _pos;
@@ -461,13 +461,13 @@ protected:
         const difference_type _index = _pos - begin();
         if (static_cast<size_type>(_index) < (size() / 2)) {
             if (_pos != begin()) {
-                _M_range_copy_backward(begin(), _pos, _next);
+                this->_M_range_copy_backward(begin(), _pos, _next);
             }
             pop_front();
         }
         else {
             if (_pos != end()) {
-                _M_range_copy(_next, end(), _pos);
+                this->_M_range_copy(_next, end(), _pos);
             }
             pop_back();
         }
