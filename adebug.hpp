@@ -52,6 +52,11 @@ template <typename _Container> struct debug_base {
     virtual ~debug_base() = default;
 
     virtual void demo() = 0;
+    void _M_print_container() const { std::cout << _container << std::endl;}
+
+    bool _M_reg_check() const;
+    void _M_reg_clear();
+    void _M_reg_size(bool _log = false) const;
 
     // std::string _M_string_from_iterator(iterator _i) const;
     std::string _M_string_from_iterator(const_iterator _i) const;
@@ -136,6 +141,11 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     debug_asso_container() = default;
     virtual ~debug_asso_container() = default;
 
+/// register function
+    void _M_reg_insert(const value_type& _v, bool _log = false);
+    void _M_reg_erase(const key_type& _k, bool _log = false);
+    void _M_reg_count(const key_type& _k, bool _log = false) const;
+
 /// demo function
     void demo() override;
 };
@@ -178,38 +188,26 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
         case base::__INSERT__: {
             std::cin>> _v;
             if (_M_end_of_file()) { break; }
-            if (_insert != nullptr) {
-                auto _p = (this->_container.*_insert)(_v);
-                std::cout << "insert(" << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
-            }
-            std::cout << this->_container << std::endl;
+            this->_M_reg_insert(_v, true);
+            this->_M_print_container();
         }; break;
         case base::__ERASE__: {
             std::cin >> _k;
             if (_M_end_of_file()) { break; }
-            if (_erase != nullptr) {
-                auto _p = (this->_container.*_erase)(_k);
-                std::cout << "erase(" << _k << ") = " << this->_M_string_from_iterator(_p) << std::endl;
-            }
-            std::cout << this->_container << std::endl;
+            this->_M_reg_erase(_k, true);
+            this->_M_print_container();
         }; break;
         case base::__CLEAR__: {
-            if (this->_clear != nullptr) {
-                (this->_container.*this->_clear)();
-            }
-            std::cout << this->_container << std::endl;
+            this->_M_reg_clear();
+            this->_M_print_container();
         }; break;
         case base::__COUNT__: {
             std::cin >> _k;
             if (_M_end_of_file()) { break; }
-            if (this->_count != nullptr) {
-                auto _p = (this->_container.*this->_count)(_k);
-                std::cout << "count(" << _k << ") = " << _p << std::endl;
-            }
-            // std::cout << this->_container << std::endl;
+            this->_M_reg_count(_k, true);
         }; break;
         case base::__SHOW__: {
-            std::cout << this->_container << std::endl;
+            this->_M_print_container();
         }; break;
         default:
             break;
@@ -220,18 +218,62 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
 };
 
 
-/// output
-// template <typename _C> auto debug_base<_C>::_M_string_from_iterator(iterator _i) const
-// -> std::string {
-//     std::stringstream _ss;
-//     if (_i != this->_container.end()) {
-//         _ss << *_i;
-//     }
-//     else {
-//         _ss << "null";
-//     }
-//     return _ss.str();
-// };
+/// _M_reg_function
+template <typename _C> bool debug_base<_C>::_M_reg_check() const {
+    if (this->_check != nullptr) {
+        return _check(this->_container);
+    }
+    return true;
+};
+template <typename _C> void debug_base<_C>::_M_reg_clear() {
+    if (this->_clear != nullptr) {
+        (this->_container.*this->_clear)();
+    }
+};
+template <typename _C> void debug_base<_C>::_M_reg_size(bool _log) const {
+    if (this->_size != nullptr) {
+        if (_log) {
+            std::cout << "size() = " << (this->_container.*this->_size)() << std::endl;;
+        }
+        else {
+            (this->_container.*this->_size)();
+        }
+    }
+};
+template <typename _C> void debug_asso_container<_C>::_M_reg_insert(const value_type& _v, bool _log) {
+    if (this->_insert != nullptr) {
+        if (_log) {
+            std::cout << "insert(" << _v << ") = "
+             << this->_M_string_from_iterator((this->_container.*_insert)(_v)) << std::endl;
+        }
+        else {
+            (this->_container.*_insert)(_v);
+        }
+    }
+};
+template <typename _C> void debug_asso_container<_C>::_M_reg_erase(const key_type& _k, bool _log) {
+    if (this->_erase != nullptr) {
+        if (_log) {
+            std::cout << "erase(" << _k << ") = "
+             << this->_M_string_from_iterator((this->_container.*_erase)(_k)) << std::endl;
+        }
+        else {
+            (this->_container.*_erase)(_k);
+        }
+    }
+};
+template <typename _C> void debug_asso_container<_C>::_M_reg_count(const key_type& _k, bool _log) const {
+    if (this->_count != nullptr) {
+        if (_log) {
+            std::cout << "count(" << _k << ") = " << (this->_container.*this->_count)(_k) << std::endl;
+        }
+        else {
+            (this->_container.*this->_count)(_k);
+        }
+    }
+};
+
+/// conversion between string & iterator
 template <typename _C> auto debug_base<_C>::_M_string_from_iterator(const_iterator _i) const
 -> std::string {
     std::stringstream _ss;
