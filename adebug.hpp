@@ -41,9 +41,9 @@ template <typename _Container> struct debug_base {
 
     typedef size_type (_Container::*size_fptr)() const;
 
-    check_fptr _check;
-    clear_fptr _clear;
-    size_fptr _size;
+    check_fptr _check = nullptr;
+    clear_fptr _clear = nullptr;
+    size_fptr _size = nullptr;
 
     container_type _container;
 
@@ -55,6 +55,33 @@ template <typename _Container> struct debug_base {
 
     // std::string _M_string_from_iterator(iterator _i) const;
     std::string _M_string_from_iterator(const_iterator _i) const;
+
+    enum operator_id {
+        __PUSH_BACK__, __POP_BACK__,
+        __PUSH_FRONT__, __POP_FRONT__,
+        __INSERT__, __ERASE__,
+        __CLEAR__, __COUNT__,
+        __SHOW__,
+        __NONE__,
+    };
+
+    const std::unordered_map<std::string, operator_id> _operator_map = {
+        {"push_back", __PUSH_BACK__}, {"pop_back", __POP_BACK__},
+        {"push", __PUSH_BACK__}, {"pop", __POP_BACK__},
+        {"pushb", __PUSH_BACK__}, {"popb", __POP_BACK__},
+        {"push_front", __PUSH_FRONT__}, {"pop_front", __POP_FRONT__},
+        {"pushf", __PUSH_FRONT__}, {"popf", __POP_FRONT__},
+        {"insert", __INSERT__}, {"erase", __ERASE__},
+        {"clear", __CLEAR__}, {"count", __COUNT__},
+        {"i", __INSERT__}, {"e", __ERASE__},
+        {"l", __CLEAR__}, {"c", __COUNT__},
+        {"print", __SHOW__}, {"s", __SHOW__}, {"show", __SHOW__}
+    };
+    
+    operator_id _M_get_operator_id(const std::string& _op) {
+        auto _it = _operator_map.find(_op);
+        return _it != _operator_map.cend() ? _it->second : __NONE__;
+    }
 };
 
 template <typename _SeqContainer> struct debug_seq_container : public debug_base<_SeqContainer> {
@@ -64,15 +91,19 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
     typedef typename base::value_type value_type;
     typedef typename base::iterator iterator;
     typedef typename base::const_iterator const_iterator;
+    typedef typename base::operator_id operator_id;
 /// container function typedef
     typedef void (container_type::*void_modify_fptr)(const value_type&);
     typedef iterator (container_type::*insert_fptr)(const_iterator, const value_type&);
     typedef iterator (container_type::*earse_fptr)(const_iterator);
     typedef typename base::size_fptr size_fptr;
 /// member
-    std::unordered_map<int, void_modify_fptr> _void_modify_map;
-    insert_fptr _insert_map;
-    earse_fptr _erase_map;
+    void_modify_fptr _push_back = nullptr;
+    void_modify_fptr _pop_back = nullptr;
+    void_modify_fptr _push_front = nullptr;
+    void_modify_fptr _pop_front = nullptr;
+    insert_fptr _insert_map = nullptr;
+    earse_fptr _erase_map = nullptr;
 
 /// demo function
     void demo() override;
@@ -86,6 +117,7 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     typedef typename base::iterator iterator;
     typedef typename base::const_iterator const_iterator;
     typedef typename container_type::key_type key_type;
+    typedef typename base::operator_id operator_id;
 /// container function typedef
     typedef iterator (container_type::*insert_fptr)(const value_type&);
     typedef iterator (container_type::*earse_fptr)(const key_type&);
@@ -94,11 +126,11 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     typedef size_type (container_type::*count_fptr)(const key_type&) const;
     typedef typename base::size_fptr size_fptr;
 /// member
-    insert_fptr _insert;
-    earse_fptr _erase;
-    find_fptr _find;
-    cfind_fptr _cfind;
-    count_fptr _count;
+    insert_fptr _insert = nullptr;
+    earse_fptr _erase = nullptr;
+    find_fptr _find = nullptr;
+    cfind_fptr _cfind = nullptr;
+    count_fptr _count = nullptr;
 
 /// constructor
     debug_asso_container() = default;
@@ -108,59 +140,82 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     void demo() override;
 };
 
+static bool _M_end_of_file() {
+    return std::cin.eof() || std::cin.fail();
+};
+static void _M_reset_cin() {
+    std::cin.clear(); // std::cin.sync();
+}
 
 template <typename _SC> void debug_seq_container<_SC>::demo() {
-
+    size_type _i; // iterator_index
+    value_type _v;
+    std::string _op;
+    std::cout << '[' << typeid(asp::decay_t<_SC>).name() << "]:" << std::endl;
+    while (!std::cin.eof()) {
+        std::cin >> _op;
+        if (_M_end_of_file()) { break; }
+        switch (_op) {
+        case "push":
+        case "push_back": {
+            std::cin >> _v;
+            if (_M_end_of_file()) { break; }
+            // if (_)
+        }; break;
+        }
+    }
 };
 template <typename _AC> void debug_asso_container<_AC>::demo() {
     key_type _k;
     value_type _v;
-    char _op;
+    std::string _op;
     std::cout << '[' << typeid(asp::decay_t<_AC>).name() << "]:" << std::endl;
     while (!std::cin.eof()) {
         std::cin >> _op;
-        if (std::cin.eof()) { break; }
-        switch (_op) {
-        case 'i': {
+        operator_id _id = this->_M_get_operator_id(_op);
+        if (_M_end_of_file()) { break; }
+        switch (_id) {
+        case base::__INSERT__: {
             std::cin>> _v;
-            if (std::cin.eof()) { break; }
+            if (_M_end_of_file()) { break; }
             if (_insert != nullptr) {
                 auto _p = (this->_container.*_insert)(_v);
                 std::cout << "insert(" << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
             }
             std::cout << this->_container << std::endl;
         }; break;
-        case 'e': {
+        case base::__ERASE__: {
             std::cin >> _k;
-            if (std::cin.eof()) { break; }
+            if (_M_end_of_file()) { break; }
             if (_erase != nullptr) {
                 auto _p = (this->_container.*_erase)(_k);
                 std::cout << "erase(" << _k << ") = " << this->_M_string_from_iterator(_p) << std::endl;
             }
             std::cout << this->_container << std::endl;
         }; break;
-        case 'l': {
+        case base::__CLEAR__: {
             if (this->_clear != nullptr) {
                 (this->_container.*this->_clear)();
             }
             std::cout << this->_container << std::endl;
         }; break;
-        case 'c': {
+        case base::__COUNT__: {
             std::cin >> _k;
-            if (std::cin.eof()) { break; }
+            if (_M_end_of_file()) { break; }
             if (this->_count != nullptr) {
                 auto _p = (this->_container.*this->_count)(_k);
                 std::cout << "count(" << _k << ") = " << _p << std::endl;
             }
             // std::cout << this->_container << std::endl;
         }; break;
-        case 's': {
+        case base::__SHOW__: {
             std::cout << this->_container << std::endl;
         }; break;
         default:
             break;
         }
-
+        _op.clear();
+        _M_reset_cin();
     }
 };
 
