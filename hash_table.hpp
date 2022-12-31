@@ -154,7 +154,7 @@ template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, 
     hash_const_iterator(const node_type* _p, const bucket_index& _i, const _hash_table* _h) : base(_p, _i, _h) {}
     hash_const_iterator(const self& _s) : base(_s) {}
     hash_const_iterator(self&& _s) : base(std::move(_s)) {}
-    hash_const_iterator(const iterator& _it) : base(_it) {}
+    hash_const_iterator(const iterator& _it) : base(_it._cur, _it._bi, _it._ht) {}
     hash_const_iterator(iterator&& _it) : base(std::move(_it)) {}
 
     iterator _const_cast() const {
