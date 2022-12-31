@@ -100,6 +100,19 @@ public:
         }
         return _ret;
     }
+    void clear() {
+        if (empty()) return;
+        list_node<value_type>* prev = nullptr;
+        list_node<value_type>* p = mark.next;
+        for (; p != nullptr && p != &mark;) {
+            prev = p;
+            p = p->next;
+            delete prev;
+        }
+        mark.prev = &mark;
+        mark.next = &mark;
+        m_element_count = 0;
+    }
 
     /// ostream
     template <typename _R> friend std::ostream& operator<<(std::ostream& os, const list<_R>& l) {
