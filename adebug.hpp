@@ -119,9 +119,11 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
     std::cout << '[' << typeid(asp::decay_t<_AC>).name() << "]:" << std::endl;
     while (!std::cin.eof()) {
         std::cin >> _op;
+        if (std::cin.eof()) { break; }
         switch (_op) {
         case 'i': {
             std::cin>> _v;
+            if (std::cin.eof()) { break; }
             if (_insert != nullptr) {
                 auto _p = (this->_container.*_insert)(_v);
                 std::cout << "insert(" << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
@@ -130,21 +132,32 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
         }; break;
         case 'e': {
             std::cin >> _k;
+            if (std::cin.eof()) { break; }
             if (_erase != nullptr) {
                 auto _p = (this->_container.*_erase)(_k);
                 std::cout << "erase(" << _k << ") = " << this->_M_string_from_iterator(_p) << std::endl;
             }
             std::cout << this->_container << std::endl;
         }; break;
-        case 'c': {
+        case 'l': {
             if (this->_clear != nullptr) {
                 (this->_container.*this->_clear)();
             }
             std::cout << this->_container << std::endl;
         }; break;
-        
+        case 'c': {
+            std::cin >> _k;
+            if (std::cin.eof()) { break; }
+            if (this->_count != nullptr) {
+                auto _p = (this->_container.*this->_count)(_k);
+                std::cout << "count(" << _k << ") = " << _p << std::endl;
+            }
+            // std::cout << this->_container << std::endl;
+        }; break;
+        case 's': {
+            std::cout << this->_container << std::endl;
+        }; break;
         default:
-
             break;
         }
 
