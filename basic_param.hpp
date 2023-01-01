@@ -4,7 +4,7 @@
 namespace asp {
     
 typedef unsigned int size_type;
-typedef signed long difference_type;
+typedef signed int difference_type;
 
 
 };
