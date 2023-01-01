@@ -42,8 +42,8 @@ template <typename _Container> struct debug_base {
     typedef size_type (_Container::*size_fptr)() const;
 
     check_fptr _check = nullptr;
-    clear_fptr _clear = nullptr;
-    size_fptr _size = nullptr;
+    clear_fptr _clear = &container_type::clear;
+    size_fptr _size = &container_type::size;
 
     container_type _container;
 
@@ -65,8 +65,9 @@ template <typename _Container> struct debug_base {
         __PUSH_BACK__, __POP_BACK__,
         __PUSH_FRONT__, __POP_FRONT__,
         __INSERT__, __ERASE__,
+        __ADD__, __SET__, __DELETE__,
         __CLEAR__, __COUNT__, __SIZE__,
-        __SHOW__,
+        __PRINT__,
         __NONE__,
     };
 
@@ -77,10 +78,11 @@ template <typename _Container> struct debug_base {
         {"push_front", __PUSH_FRONT__}, {"pop_front", __POP_FRONT__},
         {"pushf", __PUSH_FRONT__}, {"popf", __POP_FRONT__},
         {"insert", __INSERT__}, {"erase", __ERASE__},
+        {"add", __ADD__}, {"a", __ADD__}, {"set", __SET__}, {"s", __SET__}, {"del", __DELETE__}, {"d", __DELETE__},
         {"clear", __CLEAR__}, {"count", __COUNT__}, {"size", __SIZE__},
         {"i", __INSERT__}, {"e", __ERASE__},
         {"l", __CLEAR__}, {"c", __COUNT__},
-        {"print", __SHOW__}, {"s", __SHOW__}, {"show", __SHOW__}
+        {"print", __PRINT__}, {"p", __PRINT__}
     };
     
     operator_id _M_get_operator_id(const std::string& _op) {
@@ -134,6 +136,7 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     typedef typename base::operator_id operator_id;
 /// container function typedef
     typedef iterator (container_type::*insert_fptr)(const value_type&);
+    typedef iterator (container_type::*set_fptr)(const key_type&, const value_type&);
     typedef iterator (container_type::*earse_fptr)(const key_type&);
     typedef iterator (container_type::*find_fptr)(const key_type&);
     typedef const_iterator (container_type::*cfind_fptr)(const key_type&) const;
@@ -141,6 +144,7 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     typedef typename base::size_fptr size_fptr;
 /// member
     insert_fptr _insert = nullptr;
+    set_fptr _set = nullptr;
     earse_fptr _erase = nullptr;
     find_fptr _find = nullptr;
     cfind_fptr _cfind = nullptr;
@@ -152,6 +156,7 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
 
 /// register function
     void _M_reg_insert(const value_type& _v, bool _log = false);
+    void _M_reg_set(const key_type& _k, const value_type& _v, bool _log = false);
     void _M_reg_erase(const key_type& _k, bool _log = false);
     void _M_reg_count(const key_type& _k, bool _log = false) const;
 
@@ -217,9 +222,9 @@ template <typename _SC> void debug_seq_container<_SC>::demo() {
             this->_M_print_container();
         }; break;
         case base::__SIZE__: {
-            this->_M_reg_size();
+            this->_M_reg_size(true);
         }; break;
-        case base::__SHOW__: {
+        case base::__PRINT__: {
             this->_M_print_container();
         }; break;
         default: break;
@@ -236,13 +241,21 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
         if (_M_end_of_file()) { break; }
         operator_id _id = this->_M_get_operator_id(_op);
         switch (_id) {
-        case base::__INSERT__: {
+        case base::__ADD__: {
             std::cin >> _v;
             if (_M_end_of_file()) { break; }
             this->_M_reg_insert(_v, true);
             this->_M_print_container();
         }; break;
-        case base::__ERASE__: {
+        case base::__SET__: {
+            std::cin >> _k;
+            if (_M_end_of_file()) { break; }
+            std::cin >> _v;
+            if (_M_end_of_file()) { break; }
+            this->_M_reg_set(_k, _v, true);
+            this->_M_print_container();
+        }; break;
+        case base::__DELETE__: {
             std::cin >> _k;
             if (_M_end_of_file()) { break; }
             this->_M_reg_erase(_k, true);
@@ -260,7 +273,7 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
         case base::__SIZE__: {
             this->_M_reg_size(true);
         }; break;
-        case base::__SHOW__: {
+        case base::__PRINT__: {
             this->_M_print_container();
         }; break;
         default: break;
@@ -339,7 +352,15 @@ template <typename _C> void debug_asso_container<_C>::_M_reg_insert(const value_
     if (this->_insert != nullptr) {
         auto _p = (this->_container.*_insert)(_v);
         if (_log) {
-            std::cout << "*insert(" << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
+            std::cout << "*add(" << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
+        }
+    }
+};
+template <typename _C> void debug_asso_container<_C>::_M_reg_set(const key_type& _k, const value_type& _v, bool _log) {
+    if (this->_set != nullptr) {
+        auto _p = (this->_container.*_set)(_k, _v);
+        if (_log) {
+            std::cout << "*set(@" << _k << ", " << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
         }
     }
 };
