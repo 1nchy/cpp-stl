@@ -203,9 +203,10 @@ public:
 
 public:
     hash_table();
-    // hash_table(const self& _r);
+    hash_table(const self& _ht);
     // self& operator=(const self& _r);
     virtual ~hash_table();
+    template <typename _NodeGen> void _M_assign(const self& _ht, const _NodeGen&);
 
     iterator begin() { return iterator(_M_begin(), this); }
     const_iterator cbegin() const { return const_iterator(_M_begin(), this); }
@@ -281,10 +282,15 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::hash_table() {
     this->_bucket_count = _s;
 };
 
-// template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc>
-// hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::hash_table(const self& _r) {
-    
-// };
+template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc>
+hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::hash_table(const self& _ht)
+: base(_ht), _buckets(nullptr), _bucket_count(_ht._bucket_count)
+, _rehash_buckets(nullptr), _rehash_bucket_count(_ht._rehash_bucket_count)
+, _element_count(_ht._element_count), _rehash_policy(_ht._rehash_policy), _extract_key(_ht._extract_key) {
+    _M_assign(_ht, [this](const node_type* _n) {
+        return this->_M_allocate_node(*_n);
+    });
+};
 
 // template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
 // hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::operator=(const self& _r)
@@ -302,6 +308,34 @@ hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::~hash_table() {
     _buckets = nullptr; _bucket_count = 0;
     _rehash_buckets = nullptr; _rehash_bucket_count = 0;
 };
+
+template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc>
+template <typename _NodeGen> auto
+hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::
+_M_assign(const self& _ht, const _NodeGen& _gen) -> void {
+    bucket_type* _t_buckets = nullptr;
+    bucket_type* _t_rehash_buckets = nullptr;
+    if (_buckets == nullptr) {
+        _buckets = _t_buckets = this->_M_allocate_buckets(_ht._bucket_count);
+        _rehash_buckets = _t_rehash_buckets = this->_M_allocate_buckets(_ht._rehash_bucket_count);
+    }
+    if (_element_count == 0) {
+        return;
+    }
+    const_iterator _ht_n = _ht.cbegin();
+    node_type* _prev = nullptr;
+    for (; _ht_n != _ht.cend(); _ht_n._M_incr()) {
+        node_type* _p = _gen(_ht_n._cur);
+        if (this->_M_bucket(_ht_n._bi) == nullptr) {
+            this->_M_bucket_ref(_ht_n._bi) = _p;
+        }
+        else if (_prev != nullptr) {
+            _prev->_next = _p;
+        }
+        _prev = _p;
+    }
+};
+
 
 template <typename _Key, typename _Value, typename _ExtractKey, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtractKey, _Hash, _Alloc>::_M_hash_code(const key_type& _k) const
