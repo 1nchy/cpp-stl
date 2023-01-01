@@ -77,7 +77,8 @@ template <typename _Tp> struct hash_node : public node<_Tp> {
     hash_node() : base() {}
     hash_node(const value_type& _v): base(_v) {}
     template <typename... _Args> hash_node(_Args&&... _args): base(std::forward<_Args>(_args)...) {}
-    hash_node(const hash_node& r) : base(r) {}
+    hash_node(const self& r) : base(r), _hash_code(r._hash_code) {}
+    hash_node(self&& r) : base(std::move(r)), _hash_code(std::move(r._hash_code)) {}
     virtual ~hash_node() = default;
     
     self* _next = nullptr;
@@ -110,7 +111,8 @@ template <typename _Value, typename _Alloc> struct hash_table_alloc : public _Al
         node_allocator_type _node_alloc = _M_get_node_allocator();
         auto _ptr = node_alloc_traits::allocate(_node_alloc, 1);
         node_type* _p = std::addressof(*_ptr);
-        node_alloc_traits::construct(_node_alloc, _p, _x);
+        node_alloc_traits::construct(_node_alloc, _p, _x.val());
+        _p->_hash_code = _x._hash_code;
         return _p;
     }
     template <typename... _Args> node_type* _M_allocate_node(_Args&&... _args) {
