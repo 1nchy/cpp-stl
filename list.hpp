@@ -8,6 +8,7 @@
 namespace asp {
 template <typename _Tp> class list;
 template <typename _Tp> class list {
+    typedef list<_Tp> self;
 public:
     using value_type = typename list_node<_Tp>::value_type;
     using pointer = typename list_node<_Tp>::pointer;
@@ -15,8 +16,11 @@ public:
     typedef list_iterator<value_type> iterator;
     typedef list_const_iterator<value_type> const_iterator;
     list() {
-        mark.prev = &mark;
-        mark.next = &mark;
+        _M_init_mark();
+    }
+    list(const self& _l) : m_element_count(_l.m_element_count) {
+        _M_init_mark();
+        this->_M_assign(_l);
     }
     virtual ~list() {
         list_node<value_type>* p = mark.next;
@@ -31,7 +35,7 @@ public:
     value_type& front() { return mark.next->val(); }
     const value_type& back() const { return mark.prev->val(); }
     value_type& back() { return mark.prev->val(); }
-    const size_type& size() const { return m_element_count; }
+    size_type size() const { return m_element_count; }
     bool empty() const { return size() == 0; }
 
     /// iterator
@@ -83,6 +87,9 @@ public:
     iterator erase(const_iterator pos) {
         iterator _ret = iterator(pos._const_cast()._ptr->next);
         list_node<value_type>* p =pos._const_cast()._ptr;
+        if (p == &mark) {
+            return end();
+        }
         p->unhook();
         --m_element_count;
         delete p;
@@ -109,8 +116,7 @@ public:
             p = p->next;
             delete prev;
         }
-        mark.prev = &mark;
-        mark.next = &mark;
+        _M_init_mark();
         m_element_count = 0;
     }
 
@@ -126,6 +132,19 @@ public:
         os << ']';
         return os;
     }
+
+protected:
+    void _M_init_mark() {
+        mark.prev = &mark;
+        mark.next = &mark;
+    }
+    void _M_assign(const self& _l) {
+        this->clear();
+        for (const_iterator _i = _l.cbegin(); _i != _l.cend(); ++_i) {
+            this->push_back(*_i);
+        }
+    }
+
 private:
     // list_node<value_type>* head = nullptr; // head->prev = nullptr
     // list_node<value_type>* tail = nullptr; // tail->next = nullptr
