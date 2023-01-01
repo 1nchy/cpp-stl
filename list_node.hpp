@@ -176,14 +176,20 @@ template <typename _Tp> struct list_const_iterator {
     }
     self operator+(int n) {
         self _tmp = *this;
-        while (n--) {
+        if (n < 0) {
+            return operator-(-n);
+        }
+        while (n-- && _tmp._ptr != nullptr) {
             _tmp._ptr = _tmp._ptr->next;
         }
         return _tmp;
     }
     self operator-(int n) {
         self _tmp = *this;
-        while (n--) {
+        if (n < 0) {
+            return operator+(-n);
+        }
+        while (n-- && _tmp._ptr != nullptr) {
             _tmp._ptr = _tmp._ptr->prev;
         }
         return _tmp;
