@@ -133,6 +133,10 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
 
 /// demo function
     void demo() override;
+
+protected:
+/// helper
+    size_type _M_get_positive_offset(difference_type _i) const;
 };
 
 template <typename _AssoContainer> struct debug_asso_container : public debug_base<_AssoContainer> {
@@ -183,6 +187,7 @@ static void _M_reset_cin() {
 
 template <typename _SC> void debug_seq_container<_SC>::demo() {
     size_type _i; // iterator_index
+    difference_type _di; // input_index
     value_type _v;
     std::string _op;
     std::cout << '[' << typeid(asp::decay_t<_SC>).name() << "]:" << std::endl;
@@ -212,17 +217,19 @@ template <typename _SC> void debug_seq_container<_SC>::demo() {
             this->_M_print_container();
         }; break;
         case base::__INSERT__: {
-            std::cin >> _i;
+            std::cin >> _di;
             if (_M_end_of_file()) { break; }
             std::cin >> _v;
             if (_M_end_of_file()) { break; }
+            _i = _M_get_positive_offset(_di);
             const_iterator _p = this->_container.cbegin() + _i;
             this->_M_reg_insert(_p, _v, true);
             this->_M_print_container();
         }; break;
         case base::__ERASE__: {
-            std::cin >> _i;
+            std::cin >> _di;
             if (_M_end_of_file()) { break; }
+            _i = _M_get_positive_offset(_di);
             const_iterator _p = this->_container.cbegin() + _i;
             this->_M_reg_erase(_p, true);
             this->_M_print_container();
@@ -243,6 +250,8 @@ template <typename _SC> void debug_seq_container<_SC>::demo() {
         }; break;
         default: break;
         }
+        _op.clear();
+        _M_reset_cin();
     }
 };
 template <typename _AC> void debug_asso_container<_AC>::demo() {
@@ -412,6 +421,17 @@ template <typename _C> auto debug_base<_C>::_M_string_from_iterator(const_iterat
     }
     return _ss.str();
 };
+
+template <typename _C> auto debug_seq_container<_C>::_M_get_positive_offset(difference_type _i) const
+-> size_type {
+    if (_i >= 0) {
+        return std::min(this->_container.size(), size_type(_i));
+    }
+    else {
+        return std::max(size_type(0), this->_container.size() + _i);
+    }
+};
+
 };
 
 #endif
