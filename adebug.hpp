@@ -31,6 +31,7 @@ template <typename _SequenceContainer> struct debug_seq_container;
 template <typename _AssociativeContainer> struct debug_asso_container;
 
 template <typename _Container> struct debug_base {
+    typedef debug_base<_Container> self;
     typedef _Container container_type;
     typedef typename _Container::value_type value_type;
     typedef typename _Container::iterator iterator;
@@ -48,7 +49,7 @@ template <typename _Container> struct debug_base {
     container_type _container;
 
     debug_base() = default;
-    debug_base(check_fptr _f) : _check(_f) {}
+    // debug_base(const self& _da) : _check(_da._check), _clear(_da._clear), _size(_da._size), _container(_da._container) {}
     virtual ~debug_base() = default;
 
     virtual void demo() = 0;
@@ -68,6 +69,7 @@ template <typename _Container> struct debug_base {
         __ADD__, __SET__, __DELETE__,
         __CLEAR__, __COUNT__, __SIZE__,
         __PRINT__,
+        __QUIT__,
         __NONE__,
     };
 
@@ -82,6 +84,7 @@ template <typename _Container> struct debug_base {
         {"clear", __CLEAR__}, {"count", __COUNT__}, {"size", __SIZE__},
         {"i", __INSERT__}, {"e", __ERASE__},
         {"l", __CLEAR__}, {"c", __COUNT__},
+        {"quit", __QUIT__}, {"q", __QUIT__},
         {"print", __PRINT__}, {"p", __PRINT__}
     };
     
@@ -93,6 +96,7 @@ template <typename _Container> struct debug_base {
 
 template <typename _SeqContainer> struct debug_seq_container : public debug_base<_SeqContainer> {
     typedef debug_base<_SeqContainer> base;
+    typedef debug_seq_container<_SeqContainer> self;
     typedef typename base::container_type container_type;
     typedef typename base::check_fptr check_fptr;
     typedef typename base::value_type value_type;
@@ -105,6 +109,12 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
     typedef iterator (container_type::*insert_fptr)(const_iterator, const value_type&);
     typedef iterator (container_type::*earse_fptr)(const_iterator);
     typedef typename base::size_fptr size_fptr;
+/// (de)constructor
+    debug_seq_container() = default;
+    // debug_seq_container(const self& _da) : base(_da)
+    // , _push_back(_da._push_back), _pop_back(_da._pop_back), _push_front(_da._push_front), _pop_front(_da._pop_front)
+    // , _insert(_da._insert), _erase(_da._erase) {}
+
 /// member
     push_fptr _push_back = nullptr;
     pop_fptr _pop_back = nullptr;
@@ -126,6 +136,7 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
 };
 
 template <typename _AssoContainer> struct debug_asso_container : public debug_base<_AssoContainer> {
+    typedef debug_asso_container<_AssoContainer> self;
     typedef debug_base<_AssoContainer> base;
     typedef typename base::container_type container_type;
     typedef typename base::check_fptr check_fptr;
@@ -142,6 +153,9 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     typedef const_iterator (container_type::*cfind_fptr)(const key_type&) const;
     typedef size_type (container_type::*count_fptr)(const key_type&) const;
     typedef typename base::size_fptr size_fptr;
+/// (de)constructor
+    debug_asso_container() : base() {}
+    // debug_asso_container(const self& d) : base(d) {} //, _insert(d._insert), _set(d._set), _erase(d._erase), _find(d._find), _cfind(d._cfind), _count(d._count) {}
 /// member
     insert_fptr _insert = nullptr;
     set_fptr _set = nullptr;
@@ -149,10 +163,6 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     find_fptr _find = nullptr;
     cfind_fptr _cfind = nullptr;
     count_fptr _count = nullptr;
-
-/// constructor
-    debug_asso_container() = default;
-    virtual ~debug_asso_container() = default;
 
 /// register function
     void _M_reg_insert(const value_type& _v, bool _log = false);
@@ -227,6 +237,10 @@ template <typename _SC> void debug_seq_container<_SC>::demo() {
         case base::__PRINT__: {
             this->_M_print_container();
         }; break;
+        case base::__QUIT__: {
+            _M_reset_cin();
+            return;
+        }; break;
         default: break;
         }
     }
@@ -276,11 +290,16 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
         case base::__PRINT__: {
             this->_M_print_container();
         }; break;
+        case base::__QUIT__: {
+            _M_reset_cin();
+            return;
+        }; break;
         default: break;
         }
         _op.clear();
         _M_reset_cin();
     }
+    _M_reset_cin();
 };
 
 
