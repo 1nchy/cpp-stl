@@ -88,6 +88,22 @@ template <class _Tp> struct decay;
 template <class _Tp> using decay_t = typename decay<_Tp>::type;
 
 template <bool _b, class _Tp = void> struct enable_if;
+
+#define _HAS_MEMBER_FUNC(func) \
+template <typename _T, typename... _Args>\
+struct has_member_##func\
+{\
+private:\
+    template <typename _U> static auto _M_check(int) -> decltype(std::declval<_U>().func(std::declval<_Args>()...), true_type());\
+    template <typename _U> static auto _M_check(...) -> false_type;\
+public:\
+    enum {_value = is_same<decltype(_M_check<_T>(0)), true_type>::value};\
+};
+
+// template <typename _T, typename _R, typename... _Args> struct func;
+// template <typename _T, typename _R, typename... _Args> struct func : public true_type {};
+// template <typename _T, typename _R, typename... _Args> struct func : public false_type {};
+
 };
 
 #include "type_traits.cpp"
