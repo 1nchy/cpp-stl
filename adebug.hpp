@@ -92,6 +92,9 @@ template <typename _Container> struct debug_base {
         auto _it = _operator_map.find(_op);
         return _it != _operator_map.cend() ? _it->second : __NONE__;
     }
+
+protected:
+    _HAS_FUNC(operator<<, out);
 };
 
 template <typename _SeqContainer> struct debug_seq_container : public debug_base<_SeqContainer> {
@@ -378,7 +381,8 @@ template <typename _C> void debug_seq_container<_C>::_M_reg_erase(const_iterator
 };
 template <typename _C> void debug_asso_container<_C>::_M_reg_insert(const value_type& _v, bool _log) {
     if (this->_insert != nullptr) {
-        auto _p = (this->_container.*_insert)(_v);
+        auto _r = (this->_container.*_insert)(_v);
+        auto _p = typename container_type::_ExtractIterator()(_r);
         if (_log) {
             std::cout << "*add(" << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
         }
@@ -386,7 +390,8 @@ template <typename _C> void debug_asso_container<_C>::_M_reg_insert(const value_
 };
 template <typename _C> void debug_asso_container<_C>::_M_reg_set(const key_type& _k, const value_type& _v, bool _log) {
     if (this->_set != nullptr) {
-        auto _p = (this->_container.*_set)(_k, _v);
+        auto _r = (this->_container.*_set)(_k, _v);
+        auto _p = typename container_type::_ExtractIterator()(_r);
         if (_log) {
             std::cout << "*set(@" << _k << ", " << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
         }
@@ -414,7 +419,12 @@ template <typename _C> auto debug_base<_C>::_M_string_from_iterator(const_iterat
 -> std::string {
     std::stringstream _ss;
     if (_i != this->_container.cend()) {
-        _ss << *_i;
+        if (has_func_out<std::ostream&, const const_iterator&>::_value) {
+            _ss << _i;
+        }
+        else {
+            _ss << *_i;
+        }
     }
     else {
         _ss << "null";
