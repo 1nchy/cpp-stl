@@ -152,6 +152,12 @@ struct _select_0x {
     }
 };
 
+struct _select_1x {
+    template <typename _Tp> auto operator()(_Tp&& _x) const {
+        return std::get<1>(std::forward<_Tp>(_x));
+    }
+};
+
 size_type rehash_policy::next_bkt(size_type _n) const {
     const unsigned long *_p = std::lower_bound(_prime_list, _prime_list + _s_primes - 1, _n);
     _next_resize = static_cast<size_type>(std::ceil(*_p * _max_load_factor));
