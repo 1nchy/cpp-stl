@@ -162,10 +162,10 @@ template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey,
     }
 };
 
-template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc>
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Hash, typename _Alloc>
  class hash_table : public hash_table_alloc<_Value, _Alloc> {
 public:
-    typedef hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc> self;
+    typedef hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc> self;
     typedef hash_table_alloc<_Value, _Alloc> base;
     typedef hash_table_alloc<_Value, _Alloc> ht_alloc;
     typedef typename base::elt_allocator_type elt_allocator_type;
@@ -174,6 +174,7 @@ public:
     typedef typename base::node_alloc_traits node_alloc_traits;
     typedef typename base::bucket_allocator_type bucket_allocator_type;
     typedef typename base::bucket_alloc_traits bucket_alloc_traits;
+    typedef _ExtKey _ExtractKey;
 
     typedef _Key key_type;
     typedef typename base::node_type node_type;
@@ -187,6 +188,10 @@ public:
 
     typedef asp::conditional_t<_UniqueKey, std::pair<iterator, bool>, iterator> ireturn_type;
     typedef asp::conditional_t<_UniqueKey, _select_0x, _select_self> _ExtractIterator;
+    typedef asp::conditional_t<asp::is_same<_ExtractKey, _select_self>::value, true_type, false_type> kv_self;
+    typedef asp::conditional_t<kv_self::value, _select_self, _select_1x> _ExtractValue;
+    typedef asp::conditional_t<kv_self::value, value_type, typename asp::tuple_traits_t<1, value_type>> mapped_type;
+    // typedef asp::conditional_t<asp::is_same<_ExtractKey, _select_self>::value, value_type, std::tuple_element_t<1, value_type>> mapped_type;
 
     typedef rehash_policy::bucket_index bucket_index;
     static const bucket_index _s_illegal_index;
@@ -707,7 +712,7 @@ operator<<(std::ostream& os, const hash_table<_Key, _Value, _ExtractKey, _Unique
 -> std::ostream& {
     os << '[';
     for (auto p = _h.cbegin(); p != _h.cend();) {
-        os << *p;
+        os << p;
         bool _next_null = static_cast<hash_node_iterator<_Key, _Value, _ExtractKey, _UniqueKey, true, _Hash, _Alloc>>(p)._M_next_nullptr();
         if (++p != _h.cend()) {
             os << (_next_null ? "; " : ", ");
@@ -720,14 +725,21 @@ operator<<(std::ostream& os, const hash_table<_Key, _Value, _ExtractKey, _Unique
 template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, bool _Constant, typename _Hash, typename _Alloc> auto
 operator<<(std::ostream& os, const hash_node_iterator<_Key, _Value, _ExtractKey, _UniqueKey, _Constant, _Hash, _Alloc>& _h)
 -> std::ostream& {
+    using ht = typename hash_node_iterator<_Key, _Value, _ExtractKey, _UniqueKey, _Constant, _Hash, _Alloc>::_hash_table;
     if (_h) {
-        os << *_h;
+        if (ht::kv_self::value) {
+            os << typename ht::_ExtractValue()(*_h);
+        }
+        else {
+            // os << "{" << _h._ht->_extract_key(*_h) << ", " << typename ht::_ExtractValue()(*_h) << "}";
+            os << "{" << typename ht::_ExtractKey()(*_h) << ", " << typename ht::_ExtractValue()(*_h) << "}";
+        }
     }
     else {
         os << "null";
     }
     return os;
-}
+};
 
 };
 
