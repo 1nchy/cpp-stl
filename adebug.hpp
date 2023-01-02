@@ -151,10 +151,12 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     typedef typename base::iterator iterator;
     typedef typename base::const_iterator const_iterator;
     typedef typename container_type::key_type key_type;
+    typedef typename container_type::mapped_type mapped_type;
+    typedef typename container_type::ireturn_type ireturn_type;
     typedef typename base::operator_id operator_id;
 /// container function typedef
-    typedef iterator (container_type::*insert_fptr)(const value_type&);
-    typedef iterator (container_type::*set_fptr)(const key_type&, const value_type&);
+    typedef ireturn_type (container_type::*insert_fptr)(const value_type&);
+    // typedef ireturn_type (container_type::*set_fptr)(const key_type&, const mapped_type&);
     typedef size_type (container_type::*earse_fptr)(const key_type&);
     typedef iterator (container_type::*find_fptr)(const key_type&);
     typedef const_iterator (container_type::*cfind_fptr)(const key_type&) const;
@@ -165,7 +167,7 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     // debug_asso_container(const self& d) : base(d) {} //, _insert(d._insert), _set(d._set), _erase(d._erase), _find(d._find), _cfind(d._cfind), _count(d._count) {}
 /// member
     insert_fptr _insert = nullptr;
-    set_fptr _set = nullptr;
+    // set_fptr _set = nullptr;
     earse_fptr _erase = nullptr;
     find_fptr _find = nullptr;
     cfind_fptr _cfind = nullptr;
@@ -173,12 +175,16 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
 
 /// register function
     void _M_reg_insert(const value_type& _v, bool _log = false);
-    void _M_reg_set(const key_type& _k, const value_type& _v, bool _log = false);
+    // void _M_reg_set(const key_type& _k, const mapped_type& _v, bool _log = false);
     void _M_reg_erase(const key_type& _k, bool _log = false);
     void _M_reg_count(const key_type& _k, bool _log = false) const;
 
 /// demo function
     void demo() override;
+
+private:
+    bool _b_kv_self = asp::is_same<key_type, value_type>::value;
+    value_type _M_get_value_from(std::istream&) const;
 };
 
 static bool _M_end_of_file() {
@@ -259,7 +265,8 @@ template <typename _SC> void debug_seq_container<_SC>::demo() {
 };
 template <typename _AC> void debug_asso_container<_AC>::demo() {
     key_type _k;
-    value_type _v;
+    // value_type _v;
+    mapped_type _m;
     std::string _op;
     std::cout << '[' << typeid(asp::decay_t<_AC>).name() << "]:" << std::endl;
     while (!std::cin.eof()) {
@@ -268,19 +275,19 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
         operator_id _id = this->_M_get_operator_id(_op);
         switch (_id) {
         case base::__ADD__: {
-            std::cin >> _v;
+            value_type _v = this->_M_get_value_from(std::cin);
             if (_M_end_of_file()) { break; }
             this->_M_reg_insert(_v, true);
             this->_M_print_container();
         }; break;
-        case base::__SET__: {
-            std::cin >> _k;
-            if (_M_end_of_file()) { break; }
-            std::cin >> _v;
-            if (_M_end_of_file()) { break; }
-            this->_M_reg_set(_k, _v, true);
-            this->_M_print_container();
-        }; break;
+        // case base::__SET__: {
+        //     std::cin >> _k;
+        //     if (_M_end_of_file()) { break; }
+        //     std::cin >> _m;
+        //     if (_M_end_of_file()) { break; }
+        //     this->_M_reg_set(_k, _m, true);
+        //     this->_M_print_container();
+        // }; break;
         case base::__DELETE__: {
             std::cin >> _k;
             if (_M_end_of_file()) { break; }
@@ -384,19 +391,28 @@ template <typename _C> void debug_asso_container<_C>::_M_reg_insert(const value_
         auto _r = (this->_container.*_insert)(_v);
         auto _p = typename container_type::_ExtractIterator()(_r);
         if (_log) {
-            std::cout << "*add(" << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
+            const key_type _k = typename container_type::_ExtractKey()(_v);
+            const mapped_type _m = typename container_type::_ExtractValue()(_v);
+            std::cout << "*add(";
+            if (!_b_kv_self) {
+                std::cout << "{" << _k << ", " << _m << "}";
+            }
+            else {
+                std::cout << _m;
+            }
+            std::cout << ") = " << this->_M_string_from_iterator(_p) << std::endl;
         }
     }
 };
-template <typename _C> void debug_asso_container<_C>::_M_reg_set(const key_type& _k, const value_type& _v, bool _log) {
-    if (this->_set != nullptr) {
-        auto _r = (this->_container.*_set)(_k, _v);
-        auto _p = typename container_type::_ExtractIterator()(_r);
-        if (_log) {
-            std::cout << "*set(@" << _k << ", " << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
-        }
-    }
-};
+// template <typename _C> void debug_asso_container<_C>::_M_reg_set(const key_type& _k, const mapped_type& _v, bool _log) {
+//     if (this->_set != nullptr) {
+//         auto _r = (this->_container.*_set)(_k, _v);
+//         auto _p = typename container_type::_ExtractIterator()(_r);
+//         if (_log) {
+//             std::cout << "*set(@" << _k << ", " << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
+//         }
+//     }
+// };
 template <typename _C> void debug_asso_container<_C>::_M_reg_erase(const key_type& _k, bool _log) {
     if (this->_erase != nullptr) {
         auto _cnt = (this->_container.*_erase)(_k);
@@ -419,12 +435,12 @@ template <typename _C> auto debug_base<_C>::_M_string_from_iterator(const_iterat
 -> std::string {
     std::stringstream _ss;
     if (_i != this->_container.cend()) {
-        if (has_operator_out<std::ostream&, const const_iterator&>::_value) {
+        // if (has_operator_out<std::ostream&, const const_iterator&>::_value) {
             _ss << _i;
-        }
-        else {
-            _ss << *_i;
-        }
+        // }
+        // else {
+        //     _ss << *_i;
+        // }
     }
     else {
         _ss << "null";
@@ -440,6 +456,18 @@ template <typename _C> auto debug_seq_container<_C>::_M_get_positive_offset(diff
     else {
         return std::max(size_type(0), this->_container.size() + _i);
     }
+};
+
+/// input
+template <typename _T1, typename _T2> std::istream& operator>>(std::istream& is, std::pair<_T1, _T2>& _p) {
+    is >> _p.first >> _p.second;
+    return is;
+};
+template <typename _C> auto debug_asso_container<_C>::_M_get_value_from(std::istream& is) const
+-> value_type {
+    asp::conditional_t<asp::is_same<key_type, value_type>::value, value_type, std::pair<key_type, mapped_type>> __v;
+    is >> __v;
+    return value_type(__v);
 };
 
 };
