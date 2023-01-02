@@ -152,7 +152,7 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
 /// container function typedef
     typedef iterator (container_type::*insert_fptr)(const value_type&);
     typedef iterator (container_type::*set_fptr)(const key_type&, const value_type&);
-    typedef iterator (container_type::*earse_fptr)(const key_type&);
+    typedef size_type (container_type::*earse_fptr)(const key_type&);
     typedef iterator (container_type::*find_fptr)(const key_type&);
     typedef const_iterator (container_type::*cfind_fptr)(const key_type&) const;
     typedef size_type (container_type::*count_fptr)(const key_type&) const;
@@ -394,9 +394,9 @@ template <typename _C> void debug_asso_container<_C>::_M_reg_set(const key_type&
 };
 template <typename _C> void debug_asso_container<_C>::_M_reg_erase(const key_type& _k, bool _log) {
     if (this->_erase != nullptr) {
-        auto _p = (this->_container.*_erase)(_k);
+        auto _cnt = (this->_container.*_erase)(_k);
         if (_log) {
-            std::cout << "*erase(" << _k << ") = " << this->_M_string_from_iterator(_p) << std::endl;
+            std::cout << "erase(" << _k << ") = " << _cnt << std::endl;
         }
     }
 };
