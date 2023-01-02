@@ -27,6 +27,7 @@ public:
     typedef typename umap_ht::const_iterator const_iterator;
     typedef typename umap_ht::ireturn_type ireturn_type;
     typedef typename umap_ht::_ExtractIterator _ExtractIterator;
+    typedef typename umap_ht::_ExtractKey _ExtractKey;
     typedef typename umap_ht::_ExtractValue _ExtractValue;
 
 /// (de)constructor
