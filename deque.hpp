@@ -31,7 +31,9 @@ public:
     explicit deque(const elt_allocator_type& _a) : base(_a) {}
     explicit deque(size_type _n, const elt_allocator_type& _a = elt_allocator_type())
      : base(_a, _n) {}
-    deque(const self& _x) : base(_x._M_get_elt_allocator(), _x.size()) {}
+    deque(const self& _x) : base(_x._M_get_elt_allocator(), _x.size()) {
+        this->_M_range_copy(_x.cbegin(), _x.cend(), this->_data._start);
+    }
     deque(self&& _x) : base(std::move(_x)) {}
     ~deque() = default;
 
