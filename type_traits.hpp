@@ -19,6 +19,7 @@ template <typename _Tp, _Tp _v> struct integral_constant {
 
 typedef integral_constant<bool, true> true_type;
 typedef integral_constant<bool, false> false_type;
+template <bool _b> using bool_t = typename integral_constant<bool, _b>::type;
 
 /// main type
 // template <typename _Tp> struct is_void;
