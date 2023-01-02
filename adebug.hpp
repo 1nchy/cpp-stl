@@ -94,7 +94,7 @@ template <typename _Container> struct debug_base {
     }
 
 protected:
-    _HAS_FUNC(operator<<, out);
+    _HAS_OPERATOR(<<, out);
 };
 
 template <typename _SeqContainer> struct debug_seq_container : public debug_base<_SeqContainer> {
@@ -419,7 +419,7 @@ template <typename _C> auto debug_base<_C>::_M_string_from_iterator(const_iterat
 -> std::string {
     std::stringstream _ss;
     if (_i != this->_container.cend()) {
-        if (has_func_out<std::ostream&, const const_iterator&>::_value) {
+        if (has_operator_out<std::ostream&, const const_iterator&>::_value) {
             _ss << _i;
         }
         else {
