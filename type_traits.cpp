@@ -110,6 +110,23 @@ public:
 
 template <bool _b, class _Tp> struct enable_if : public type_constant<void> {};
 template <class _Tp> struct enable_if<true, _Tp> : public type_constant<_Tp> {};
+
+template <typename _Head, typename... _Tail> struct tuple_traits<0, std::tuple<_Head, _Tail...>> {
+    typedef _Head type;
+};
+template <typename _Head, typename _Tail> struct tuple_traits<0, std::pair<_Head, _Tail>> {
+    typedef _Head type;
+};
+template <typename _Head, typename _Tail> struct tuple_traits<1, std::pair<_Head, _Tail>> {
+    typedef _Tail type;
+};
+template <size_type _i, typename _Head, typename... _Tail>
+struct tuple_traits<_i, std::tuple<_Head, _Tail...>>
+: tuple_traits<_i-1, std::tuple<_Tail...>> {
+    typedef tuple_traits<_i-1, std::tuple<_Tail...>> base;
+    typedef typename base::type type;
+};
+
 };
 
 #endif

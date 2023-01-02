@@ -90,6 +90,27 @@ template <class _Tp> using decay_t = typename decay<_Tp>::type;
 
 template <bool _b, class _Tp = void> struct enable_if;
 
+/**
+ * @brief tuple traits
+*/
+template <size_type _i, typename _Tp> struct tuple_traits;
+template <size_type _i, typename _Tp>
+using tuple_traits_t = typename tuple_traits<_i, _Tp>::type;
+
+/**
+ * @brief function detection
+ * @details 
+ * class A {
+ *   int f(char c);
+ * };
+ * int main(void) {
+ *   _HAS_MEMBER_FUNC(f, 1);
+ *   if (has_member_func_1<A, char>::value) {
+ *     printf("exist!\n");
+ *   }
+ *   return 0;
+ * }
+*/
 #define _HAS_MEMBER_FUNC(func, id) \
 template <typename _T, typename... _Args>\
 struct has_member_func_##id\
