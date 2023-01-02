@@ -213,6 +213,7 @@ public:
     iterator end() { return iterator(nullptr, self::_s_illegal_index, this); }
     const_iterator cend() const { return const_iterator(nullptr, self::_s_illegal_index, this); }
     size_type size() const { return _element_count; }
+    bool empty() const { return _element_count == 0; }
     size_type bucket_count() const { return _rehash_policy._in_rehash ? _rehash_bucket_count : _bucket_count; }
 
     iterator find(const key_type& _k);
