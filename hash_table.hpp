@@ -224,7 +224,7 @@ public:
     size_type count(const key_type& _k) const;
     void clear();
     ireturn_type insert(const value_type& _v);
-    ireturn_type erase(const key_type& _k);
+    size_type erase(const key_type& _k);
 
     void _M_deallocate_buckets() {
         base::_M_deallocate_buckets(_buckets, _bucket_count);
@@ -273,14 +273,13 @@ public:
 
     iterator _M_insert_unique_node(const bucket_index& _i, hash_code _c, node_type* _n);
     iterator _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n);
-    // the node {_k, _c} must exist in @_M_bucket(_i), otherwise @fn would remove the head node in @_M_bucket(_i)
-    iterator _M_erase_node(const bucket_index& _i, const key_type& _k, hash_code _c);
     /// implement
     iterator _M_insert_unique(const value_type& _v);
     iterator _M_insert_multi(const value_type& _v);
-    iterator _M_erase(const key_type& _k);
     std::pair<iterator, bool> _M_insert(const value_type& _v, asp::true_type);
     iterator _M_insert(const value_type& _v, asp::false_type);
+    size_type _M_erase(const key_type& _k, asp::true_type);
+    size_type _M_erase(const key_type& _k, asp::false_type);
 };
 
 template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc>
@@ -531,30 +530,6 @@ _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n)
 };
 
 template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
-hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_erase_node(const bucket_index& _i, const key_type& _k, hash_code _c)
--> iterator {
-    node_type* _hint = this->_M_bucket(_i);
-    if (_hint == nullptr) {
-        return iterator(nullptr, this);
-    }
-    node_type* _prev = (this->_M_equals(_k, _c, _hint)) ?
-     nullptr : _M_find_before_node(_i, _k, _c);
-    node_type* _n = (_prev != nullptr ? _prev->_next : _hint);
-    iterator _result(_n, _i, this);
-    _result._M_incr();
-    if (_prev != nullptr) {
-        _n = _prev->_next;
-        _prev->_next = _n->_next;
-    }
-    else {
-        _M_remove_bucket_begin(_i);
-    }
-    this->_M_deallocate_node(_n);
-    --_element_count;
-    return _result;
-};
-
-template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_insert_unique(const value_type& _v)
 -> iterator {
     const key_type& _k = this->_extract_key(_v);
@@ -582,17 +557,6 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_insert_mult
 };
 
 template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
-hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_erase(const key_type& _k)
--> iterator {
-    const hash_code _c = this->_M_hash_code(_k);
-    bucket_index _i = this->_M_bucket_find_index(_k, _c);
-    if (!this->_M_valid_bucket_index(_i)) {
-        return iterator(nullptr, _s_illegal_index, this);
-    }
-    return this->_M_erase_node(_i, _k, _c);
-};
-
-template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_insert(const value_type& _v, asp::true_type)
 -> std::pair<iterator, bool> {
     const key_type _k = this->_extract_key(_v);
@@ -611,6 +575,62 @@ template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey,
 hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_insert(const value_type& _v, asp::false_type)
 -> iterator {
     return this->_M_insert_multi(_v);
+};
+
+template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_erase(const key_type& _k, asp::true_type)
+-> size_type {
+    const hash_code _c = this->_M_hash_code(_k);
+    const bucket_index _i = this->_M_bucket_find_index(_k, _c);
+    if (!this->_M_valid_bucket_index(_i)) { return 0; }
+    node_type* _hint = this->_M_bucket(_i);
+    if (_hint == nullptr) { return 0; }
+    node_type* _prev = (this->_M_equals(_k, _c, _hint)) ?
+     nullptr : this->_M_find_before_node(_i, _k, _c);
+    node_type* _n = (_prev != nullptr ? _prev->_next : _hint);
+    if (_prev != nullptr) {  // _prev->_next != nullptr
+        _prev->_next = _n->_next;
+    }
+    else {
+        this->_M_remove_bucket_begin(_i);
+    }
+    this->_M_deallocate_node(_n);
+    --_element_count;
+    return 1;
+};
+
+template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_erase(const key_type& _k, asp::false_type)
+-> size_type {
+    const hash_code _c = this->_M_hash_code(_k);
+    const bucket_index _i = this->_M_bucket_find_index(_k, _c);
+    if (!this->_M_valid_bucket_index(_i)) { return 0; }
+    node_type* _hint = this->_M_bucket(_i);
+    if (_hint == nullptr) { return 0; }
+    node_type* _prev = (this->_M_equals(_k, _c, _hint)) ?
+     nullptr : this->_M_find_before_node(_i, _k, _c);
+    bool _remove_hint = _prev == nullptr;
+    size_type _remove_cnt = 0;
+    if (_prev == nullptr) {  // remove %_hint later.
+        _prev = _hint;
+    }
+    while (_prev->_next != nullptr) {
+        node_type* _n = _prev->_next;
+        if (!this->_M_equals(_k, _c, _n)) {
+            break;
+        }
+        _prev->_next = _n->_next;
+        this->_M_deallocate_node(_n);
+        --_element_count;
+        ++_remove_cnt;
+    }
+    if (_remove_hint) {
+        this->_M_remove_bucket_begin(_i);
+        this->_M_deallocate_node(_hint);
+        --_element_count;
+        ++_remove_cnt;
+    }
+    return _remove_cnt;
 };
 
 template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
@@ -669,7 +689,9 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::insert(const v
 };
 template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::erase(const key_type& _k)
--> ireturn_type {};
+-> size_type {
+    return this->_M_erase(_k, asp::bool_t<_UniqueKey>());
+};
 
 
 /// constexpr static const member
