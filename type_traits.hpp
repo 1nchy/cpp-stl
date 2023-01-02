@@ -111,6 +111,16 @@ public: \
     enum {_value = is_same<decltype(_M_check(0)), true_type>::value}; \
 };
 
+#define _HAS_MEMBER_OPERATOR(func, id) \
+template <typename _T, typename... _Args> \
+struct has_member_operator_##id { \
+private: \
+    template <typename _U> static auto _M_check(int) -> decltype(std::declval<_U>().operator func(std::declval<_Args>()...), true_type()); \
+    template <typename _U> static auto _M_check(...) -> false_type; \
+public: \
+    enum {_value = is_same<decltype(_M_check<_T>(0)), true_type>::value}; \
+};
+
 #define _HAS_OPERATOR(func, id) \
 template <typename... _Args> \
 struct has_operator_##id { \
