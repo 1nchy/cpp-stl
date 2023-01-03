@@ -390,11 +390,18 @@ template <typename _C> void debug_seq_container<_C>::_M_reg_erase(const_iterator
 template <typename _C> void debug_asso_container<_C>::_M_reg_insert(const value_type& _v, bool _log) {
     if (this->_insert != nullptr) {
         auto _r = (this->_container.*_insert)(_v);
+        bool _i_status = typename container_type::_InsertStatus()(_r);
         auto _p = typename container_type::_ExtractIterator()(_r);
         if (_log) {
-            // const key_type _k = typename container_type::_ExtractKey()(_v);
-            // const mapped_type _m = typename container_type::_ExtractValue()(_v);
-            std::cout << "*add(" << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
+            const auto _str = this->_M_string_from_iterator(_p);
+            if (!_i_status) {
+                std::cout << "fail to add, (" << _str << ") existed" << std::endl;
+            }
+            else {
+                // const key_type _k = typename container_type::_ExtractKey()(_v);
+                // const mapped_type _m = typename container_type::_ExtractValue()(_v);
+                std::cout << "*add(...) = " << _str << std::endl;
+            }
         }
     }
 };
