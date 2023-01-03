@@ -167,7 +167,7 @@ public:
     template <typename _R> friend std::ostream& operator<<(std::ostream& os, const vector<_R>& v) {
         os << '[';
         for (auto p = v.cbegin(); p != v.cend(); ++p) {
-            os << *p;
+            os << p;
             if (p + 1 != v.cend()) {
                 os << ", ";
             }

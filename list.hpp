@@ -124,7 +124,7 @@ public:
     template <typename _R> friend std::ostream& operator<<(std::ostream& os, const list<_R>& l) {
         os << '[';
         for (auto p = l.cbegin(); p != l.cend(); ++p) {
-            os << *p;
+            os << p;
             if (p + 1 != l.cend()) {
                 os << ", ";
             }

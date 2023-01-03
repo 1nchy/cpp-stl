@@ -188,7 +188,7 @@ public:
     template <typename _T, typename _A> friend std::ostream& operator<<(std::ostream& os, const deque<_T, _A>& d) {
         os << '[';
         for (auto p = d.cbegin(); p != d.cend(); ++p) {
-            os << *p;
+            os << p;
             if (p + 1 != d.cend()) {
                 os << (p._M_next_block() ? "; " : ", ");
             }

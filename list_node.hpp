@@ -131,6 +131,9 @@ template <typename _Tp> struct list_iterator {
 
 // private:
     lnode* _ptr = nullptr;
+
+/// output
+    template <typename _T> friend std::ostream& operator<<(std::ostream& os, const list_iterator<_T>&);
 };
 
 template <typename _Tp> struct list_const_iterator;
@@ -203,7 +206,21 @@ template <typename _Tp> struct list_const_iterator {
 
 // private:
     const lnode* _ptr = nullptr;
+
+/// output
+    template <typename _T> friend std::ostream& operator<<(std::ostream& os, const list_const_iterator<_T>&);
 };
+
+/// output
+template <typename _T> std::ostream& operator<<(std::ostream& os, const list_iterator<_T>& _li) {
+    os << obj_string::_M_obj_2_string(*_li);
+    return os;
+};
+
+template <typename _T> std::ostream& operator<<(std::ostream& os, const list_const_iterator<_T>& _li) {
+    os << obj_string::_M_obj_2_string(*_li);
+    return os;
+}
 
 };
 

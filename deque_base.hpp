@@ -149,6 +149,7 @@ template <typename _Tp, typename _Ref, typename _Ptr> struct deque_iterator {
     }
 
     template <typename _T, typename _A> friend std::ostream& operator<<(std::ostream& os, const deque<_T, _A>& d);
+    template <typename _T, typename _R, typename _P> friend std::ostream& operator<<(std::ostream& os, const deque_iterator<_T, _R, _P>& _di);
 protected:
     bool _M_next_block() const {
         return _cur + 1 == _last;
@@ -352,6 +353,12 @@ protected:
 };
 
 template <typename _Tp, typename _Alloc> const size_type deque_base<_Tp, _Alloc>::_S_initial_map_size = 8;
+
+/// output
+template <typename _T, typename _R, typename _P> std::ostream& operator<<(std::ostream& os, const deque_iterator<_T, _R, _P>& _di) {
+    os << obj_string::_M_obj_2_string(*_di);
+    return os;
+}
 
 };
 

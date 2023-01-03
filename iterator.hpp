@@ -4,6 +4,7 @@
 #include <iterator>
 
 #include "basic_param.hpp"
+#include "basic_io.hpp"
 #include "iterator_traits.hpp"
 
 namespace asp {
@@ -44,6 +45,9 @@ template <typename _Tp, typename _Pointer = _Tp*, typename _Reference = _Tp&> st
     }
 
     value_type* _ptr = nullptr;
+
+    template <typename _T, typename _P, typename _R> friend std::ostream&
+     operator<<(std::ostream& os, const base_iterator<_T, _P, _R>& _bi);
 };
 
 template <typename _Tp> 
@@ -149,6 +153,15 @@ template <typename _Iterator> difference_type distance(_Iterator first, _Iterato
 }
 template <typename _Iterator> void advance(_Iterator& _p, difference_type _n) {
     _advance(_p, _n, asp::_A_iterator_category(_p));
+}
+
+
+/// output
+template <typename _T, typename _P, typename _R> auto
+operator<<(std::ostream& os, const base_iterator<_T, _P, _R>& _bi)
+-> std::ostream& {
+    os << obj_string::_M_obj_2_string(*_bi);
+    return os;
 }
 
 };
