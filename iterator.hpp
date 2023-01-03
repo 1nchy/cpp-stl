@@ -30,7 +30,13 @@ template <typename _Tp, typename _Pointer = _Tp*, typename _Reference = _Tp&> st
     reference operator*() {
         return *_ptr;
     }
+    const reference operator*() const {
+        return *_ptr;
+    }
     pointer operator->() {
+        return _ptr;
+    }
+    const pointer operator->() const {
         return _ptr;
     }
     const pointer& base() const {

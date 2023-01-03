@@ -139,8 +139,15 @@ public:
         _M_range_insert(this->m_data.start + _offset, _first, _last);
         return begin() + _offset;
     }
-    iterator erase(const_iterator _pos) {}
-    iterator erase(const_iterator _first, const_iterator _last) {}
+    iterator erase(const_iterator _pos) {
+        if (_pos == cend()) return end();
+        return this->_M_erase(begin() + (_pos - cbegin()));
+    }
+    iterator erase(const_iterator _first, const_iterator _last) {
+        const auto _beg = begin();
+        const auto _cbeg = cbegin();
+        return this->_M_range_erase(_beg + (_first - _cbeg), _beg + (_last - _cbeg));
+    }
     void clear() {
         this->_M_destory(this->m_data.start, this->m_data.finish);
         this->m_data.finish = this->m_data.start;
@@ -284,6 +291,25 @@ protected:
             this->m_data.finish = _new_finish;
             this->m_data.end_of_storage = _new_start + _len;
         }
+    }
+    iterator _M_erase(iterator _pos) {
+        if (_pos + 1 != end()) {
+            std::move(_pos + 1, end(), _pos);
+        }
+        --this->m_data.finish;
+        this->_M_destory(this->m_data.finish);
+        return _pos;
+    }
+    iterator _M_range_erase(iterator _first, iterator _last) {
+        if (_first != _last) {
+            if (_last != end()) {
+                std::move(_last, end(), _first);
+            }
+            iterator _pos = _first + (end() - _last);
+            this->_M_destory(_pos.base(), this->m_data.finish);
+            this->m_data.finish = _pos.base();
+        }
+        return _first;
     }
     template <class... _Args> iterator _M_emplace(const pointer _p, _Args&&... _args) {
         const size_type _n = _p - this->m_data.start;

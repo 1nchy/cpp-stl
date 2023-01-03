@@ -96,7 +96,7 @@ template <typename _Tp, typename _Alloc = std::allocator<_Tp>> struct vector_bas
         alloc_traits::construct(this->m_data, _p, std::forward<_Args>(_args)...);
     }
     void _M_destory(pointer _p) {
-        alloc_traits::destory(this->m_data, _p);
+        alloc_traits::destroy(this->m_data, _p);
     }
     void _M_destory(pointer _first, pointer _last) {
         std::_Destroy(_first, _last, this->m_data);
