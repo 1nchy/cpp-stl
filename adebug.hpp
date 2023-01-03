@@ -140,7 +140,7 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
 
 protected:
 /// helper
-    size_type _M_get_positive_offset(difference_type _i) const;
+    size_type _M_get_positive_offset(difference_type _i, bool _del = false) const;
 };
 
 template <typename _AssoContainer> struct debug_asso_container : public debug_base<_AssoContainer> {
@@ -231,7 +231,7 @@ template <typename _SC> void debug_seq_container<_SC>::demo() {
             if (_M_end_of_file()) { break; }
             std::cin >> _v;
             if (_M_end_of_file()) { break; }
-            _i = _M_get_positive_offset(_di);
+            _i = _M_get_positive_offset(_di, false);
             const_iterator _p = this->_container.cbegin() + _i;
             this->_M_reg_insert(_p, _v, true);
             this->_M_print_container();
@@ -239,7 +239,7 @@ template <typename _SC> void debug_seq_container<_SC>::demo() {
         case base::__ERASE__: {
             std::cin >> _di;
             if (_M_end_of_file()) { break; }
-            _i = _M_get_positive_offset(_di);
+            _i = _M_get_positive_offset(_di, true);
             const_iterator _p = this->_container.cbegin() + _i;
             this->_M_reg_erase(_p, true);
             this->_M_print_container();
@@ -462,13 +462,13 @@ template <typename _C> auto debug_base<_C>::_M_string_from_iterator(const_iterat
     return _ss.str();
 };
 
-template <typename _C> auto debug_seq_container<_C>::_M_get_positive_offset(difference_type _i) const
+template <typename _C> auto debug_seq_container<_C>::_M_get_positive_offset(difference_type _i, bool _del) const
 -> size_type {
     if (_i >= 0) {
         return std::min(this->_container.size(), size_type(_i));
     }
     else {
-        return std::max(size_type(0), this->_container.size() + _i);
+        return std::max(difference_type(0), difference_type(this->_container.size() + _i) + (_del ? 0 : 1));
     }
 };
 
