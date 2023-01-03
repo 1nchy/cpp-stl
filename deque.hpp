@@ -172,6 +172,7 @@ public:
         return begin() + _offset;
     }
     iterator erase(const_iterator _pos) {
+        if (_pos == cend()) return end();
         return _M_erase(_pos._M_const_cast());
     }
     iterator erase(const_iterator _first, const_iterator _last) {
