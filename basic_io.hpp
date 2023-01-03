@@ -47,7 +47,7 @@ template <typename... _Args> auto operator<<(std::ostream& os, const std::tuple<
 
 template <typename _Head, typename _Tail> auto operator<<(std::ostream& os, const std::pair<_Head, _Tail>& _t)
 -> std::ostream& {
-    return os << '{' << _M_obj_2_string(_t.first) << ", " << _M_obj_2_string(_t.second) << '}';
+    return os << '{' << obj_string::_M_obj_2_string(_t.first) << ", " << obj_string::_M_obj_2_string(_t.second) << '}';
 }
 
 
