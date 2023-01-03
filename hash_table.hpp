@@ -173,6 +173,12 @@ template <typename _Head, typename _Tail> struct pair_tail<std::pair<_Head, _Tai
     typedef _Tail type;
 };
 template <typename _Tp> using pair_tail_t = typename pair_tail<_Tp>::type;
+
+template <bool _b> struct bool_return {
+    template <typename _Tp> bool operator()(_Tp&& _x) const {
+        return _b;
+    };
+};
 };
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Hash, typename _Alloc>
@@ -200,6 +206,7 @@ public:
     typedef hash_const_iterator<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc> const_iterator;
 
     typedef asp::conditional_t<_UniqueKey, std::pair<iterator, bool>, iterator> ireturn_type;
+    typedef asp::conditional_t<_UniqueKey, _select_1x, __details__::bool_return<true>> _InsertStatus;
     typedef asp::conditional_t<_UniqueKey, _select_0x, _select_self> _ExtractIterator;
     typedef asp::conditional_t<asp::is_same<key_type, value_type>::value, true_type, false_type> kv_self;
     typedef asp::conditional_t<kv_self::value, _select_self, _select_1x> _ExtractValue;
