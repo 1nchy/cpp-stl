@@ -5,6 +5,8 @@
 #include "hash_table_policy.hpp"
 #include "type_traits.hpp"
 
+#include "basic_io.hpp"
+
 #include <memory>
 
 namespace asp {
@@ -738,13 +740,14 @@ operator<<(std::ostream& os, const hash_node_iterator<_Key, _Value, _ExtractKey,
 -> std::ostream& {
     using ht = typename hash_node_iterator<_Key, _Value, _ExtractKey, _UniqueKey, _Constant, _Hash, _Alloc>::_hash_table;
     if (_h) {
-        if (ht::kv_self::value) {
-            os << typename ht::_ExtractValue()(*_h);
-        }
-        else {
-            // os << "{" << _h._ht->_extract_key(*_h) << ", " << typename ht::_ExtractValue()(*_h) << "}";
-            os << "{" << typename ht::_ExtractKey()(*_h) << ", " << typename ht::_ExtractValue()(*_h) << "}";
-        }
+        os << obj_string::_M_obj_2_string(*_h);
+        // if (ht::kv_self::value) {
+        //     os << typename ht::_ExtractValue()(*_h);
+        // }
+        // else {
+        //     // os << "{" << _h._ht->_extract_key(*_h) << ", " << typename ht::_ExtractValue()(*_h) << "}";
+        //     os << "{" << typename ht::_ExtractKey()(*_h) << ", " << typename ht::_ExtractValue()(*_h) << "}";
+        // }
     }
     else {
         os << "null";
