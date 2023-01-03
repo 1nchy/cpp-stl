@@ -11,6 +11,7 @@
 #include "basic_param.hpp"
 #include "log_utils.hpp"
 #include "type_traits.hpp"
+#include "basic_io.hpp"
 
 /**
  * automatic test of container.
@@ -391,16 +392,9 @@ template <typename _C> void debug_asso_container<_C>::_M_reg_insert(const value_
         auto _r = (this->_container.*_insert)(_v);
         auto _p = typename container_type::_ExtractIterator()(_r);
         if (_log) {
-            const key_type _k = typename container_type::_ExtractKey()(_v);
-            const mapped_type _m = typename container_type::_ExtractValue()(_v);
-            std::cout << "*add(";
-            if (!_b_kv_self) {
-                std::cout << "{" << _k << ", " << _m << "}";
-            }
-            else {
-                std::cout << _m;
-            }
-            std::cout << ") = " << this->_M_string_from_iterator(_p) << std::endl;
+            // const key_type _k = typename container_type::_ExtractKey()(_v);
+            // const mapped_type _m = typename container_type::_ExtractValue()(_v);
+            std::cout << "*add(" << _v << ") = " << this->_M_string_from_iterator(_p) << std::endl;
         }
     }
 };
