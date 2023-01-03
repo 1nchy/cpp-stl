@@ -68,7 +68,7 @@ template <typename _Container> struct debug_base {
         __PUSH_FRONT__, __POP_FRONT__,
         __INSERT__, __ERASE__,
         __ADD__, __SET__, __DELETE__,
-        __CLEAR__, __COUNT__, __SIZE__,
+        __CLEAR__, __COUNT__, __SIZE__, __FIND__,
         __PRINT__,
         __QUIT__,
         __NONE__,
@@ -82,7 +82,7 @@ template <typename _Container> struct debug_base {
         {"pushf", __PUSH_FRONT__}, {"popf", __POP_FRONT__},
         {"insert", __INSERT__}, {"erase", __ERASE__},
         {"add", __ADD__}, {"a", __ADD__}, {"set", __SET__}, {"s", __SET__}, {"del", __DELETE__}, {"d", __DELETE__},
-        {"clear", __CLEAR__}, {"count", __COUNT__}, {"size", __SIZE__},
+        {"clear", __CLEAR__}, {"count", __COUNT__}, {"size", __SIZE__}, {"find", __FIND__}, {"f", __FIND__},
         {"i", __INSERT__}, {"e", __ERASE__},
         {"l", __CLEAR__}, {"c", __COUNT__},
         {"quit", __QUIT__}, {"q", __QUIT__},
@@ -159,8 +159,8 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     typedef ireturn_type (container_type::*insert_fptr)(const value_type&);
     // typedef ireturn_type (container_type::*set_fptr)(const key_type&, const mapped_type&);
     typedef size_type (container_type::*earse_fptr)(const key_type&);
-    typedef iterator (container_type::*find_fptr)(const key_type&);
-    typedef const_iterator (container_type::*cfind_fptr)(const key_type&) const;
+    // typedef iterator (container_type::*find_fptr)(const key_type&);
+    typedef const_iterator (container_type::*find_fptr)(const key_type&) const;
     typedef size_type (container_type::*count_fptr)(const key_type&) const;
     typedef typename base::size_fptr size_fptr;
 /// (de)constructor
@@ -171,7 +171,6 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     // set_fptr _set = nullptr;
     earse_fptr _erase = nullptr;
     find_fptr _find = nullptr;
-    cfind_fptr _cfind = nullptr;
     count_fptr _count = nullptr;
 
 /// register function
@@ -179,6 +178,7 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     // void _M_reg_set(const key_type& _k, const mapped_type& _v, bool _log = false);
     void _M_reg_erase(const key_type& _k, bool _log = false);
     void _M_reg_count(const key_type& _k, bool _log = false) const;
+    void _M_reg_find(const key_type& _k, bool _log = false) const;
 
 /// demo function
     void demo() override;
@@ -304,6 +304,11 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
             if (_M_end_of_file()) { break; }
             this->_M_reg_count(_k, true);
         }; break;
+        case base::__FIND__: {
+            std::cin >> _k;
+            if (_M_end_of_file()) { break; }
+            this->_M_reg_find(_k, true);
+        }; break;
         case base::__SIZE__: {
             this->_M_reg_size(true);
         }; break;
@@ -427,6 +432,14 @@ template <typename _C> void debug_asso_container<_C>::_M_reg_count(const key_typ
         auto _s = (this->_container.*this->_count)(_k);
         if (_log) {
             std::cout << "count(" << _k << ") = " << _s << std::endl;
+        }
+    }
+};
+template <typename _C> void debug_asso_container<_C>::_M_reg_find(const key_type& _k, bool _log) const {
+    if (this->_count != nullptr) {
+        auto _p = (this->_container.*this->_find)(_k);
+        if (_log) {
+            std::cout << "*find(" << _k << ") = " << _p << std::endl;
         }
     }
 };
