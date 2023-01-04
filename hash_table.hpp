@@ -7,10 +7,14 @@
 
 #include "basic_io.hpp"
 
-#define _HASH_TABLE_CHECK_ 1
+#define _HASH_TABLE_CHECK_
 #ifdef _HASH_TABLE_CHECK_
 #include <unordered_set>
 #endif // _HASH_TABLE_CHECK_
+
+// sacrificing the efficieny to promise that the same key-values are stored adjacently.
+#define _HASH_TABLE_ADJACENT_SAME_VALUE_
+#undef _HASH_TABLE_ADJACENT_SAME_VALUE_
 
 #include <memory>
 
@@ -564,6 +568,7 @@ _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n)
     _n->_hash_code = _c;
     const node_type* _hint = this->_M_bucket(_i);
     const key_type& _k = this->_extract_key(_n->val());
+#ifdef _HASH_TABLE_ADJACENT_SAME_VALUE_
     node_type* _prev = ((_hint != nullptr && this->_M_equals(_k, _c, _hint)) ?
      this->_M_bucket(_i) : _M_find_before_node(_i, _k, _c));
     if (_prev != nullptr) {
@@ -573,6 +578,9 @@ _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n)
     else {
         _M_insert_bucket_begin(_i, _n);
     }
+#else
+    _M_insert_bucket_begin(_i, _n);
+#endif // _HASH_TABLE_ADJACENT_SAME_VALUE_
     return iterator(_n, _i, this);
 };
 
@@ -599,7 +607,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_insert_mult
 -> iterator {
     const key_type& _k = this->_extract_key(_v);
     const hash_code _c = this->_M_hash_code(_k);
-    // make sure the added node is next to its partners
+    // make sure the added node in its partners' bucket // todo
     const bucket_index _find_i = this->_M_in_rehash() ? this->_M_bucket_find_index(_k, _c) : _s_illegal_index;
     const bucket_index _ins_i = this->_M_bucket_insert_index(_c);
     const bucket_index _i = this->_M_valid_bucket_index(_find_i) ? _find_i : _ins_i;
@@ -669,7 +677,12 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_erase(const
     while (_prev->_next != nullptr) {
         node_type* _n = _prev->_next;
         if (!this->_M_equals(_k, _c, _n)) {
+#ifdef _HASH_TABLE_ADJACENT_SAME_VALUE_
             break;
+#else
+            _prev = _n;
+            continue;
+#endif
         }
         _prev->_next = _n->_next;
         this->_M_deallocate_node(_n);
@@ -718,7 +731,11 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::count(const ke
     size_type _cnt = 1;
     for (_p = _p->_next; _p != nullptr; _p = _p->_next) {
         if (!this->_M_equals(_k, _c, _p)) {
+#ifdef _HASH_TABLE_ADJACENT_SAME_VALUE_
             break;
+#else
+            continue;
+#endif // _HASH_TABLE_ADJACENT_SAME_VALUE_
         }
         ++_cnt;
     }
@@ -778,9 +795,11 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::check() const
                 if (_unique) {
                     return 1;
                 }
+#ifdef _HASH_TABLE_ADJACENT_SAME_VALUE_
                 if (_last_value != _k) {
                     return 2;
                 }
+#endif // _HASH_TABLE_ADJACENT_SAME_VALUE_
             }
             _uset.insert(_k);
             _last_value = _k;
@@ -802,9 +821,11 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::check() const
                     if (_unique) {
                         return 1;
                     }
+#ifdef _HASH_TABLE_ADJACENT_SAME_VALUE_
                     if (_last_value != _k) {
                         return 2;
                     }
+#endif // _HASH_TABLE_ADJACENT_SAME_VALUE_
                 }
                 _uset.insert(_k);
                 _last_value = _k;
@@ -857,6 +878,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_step_rehash
             node_type* _next_hint = _hint->_next;
             // move %_hint to %_rehash_buckets
             const bucket_index _insert_i = this->_M_bucket_insert_index(_hint);
+#ifdef _HASH_TABLE_ADJACENT_SAME_VALUE_
             // can't append directly
             if (_UniqueKey) {
                 _M_insert_unique_node(_insert_i, _hint->_hash_code, _hint);
@@ -864,7 +886,9 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_step_rehash
             else {
                 _M_insert_multi_node(_insert_i, _hint->_hash_code, _hint);
             }
-            // _M_insert_bucket_begin(_insert_i, _hint); // error
+#else
+            _M_insert_bucket_begin(_insert_i, _hint); // error
+#endif // _HASH_TABLE_ADJACENT_SAME_VALUE_
             _hint = _next_hint;
         }
         this->_M_bucket_ref(_i) = nullptr;
