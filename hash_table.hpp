@@ -14,7 +14,7 @@
 
 // sacrificing the efficieny to promise that the same key-values are stored adjacently.
 #define _HASH_TABLE_ADJACENT_SAME_VALUE_
-#undef _HASH_TABLE_ADJACENT_SAME_VALUE_
+// #undef _HASH_TABLE_ADJACENT_SAME_VALUE_
 
 #include <memory>
 
@@ -682,7 +682,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_erase(const
 #else
             _prev = _n;
             continue;
-#endif
+#endif // _HASH_TABLE_ADJACENT_SAME_VALUE_
         }
         _prev->_next = _n->_next;
         this->_M_deallocate_node(_n);
