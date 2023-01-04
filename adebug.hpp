@@ -266,8 +266,8 @@ template <typename _SC> void debug_seq_container<_SC>::demo() {
         }
         _op.clear();
         _M_reset_cin();
-        if (this->_M_reg_check() != 0) {
-            ASP_ERR("error in container.\n");
+        if (auto _ret = this->_M_reg_check()) {
+            ASP_ERR("error(%d) in container.\n", _ret);
             break;
         }
     }
@@ -332,8 +332,8 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
         }
         _op.clear();
         _M_reset_cin();
-        if (this->_M_reg_check() != 0) {
-            ASP_ERR("error in container.\n");
+        if (auto _ret = this->_M_reg_check()) {
+            ASP_ERR("error(%d) in container.\n", _ret);
             break;
         }
     }
