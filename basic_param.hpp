@@ -6,6 +6,13 @@ namespace asp {
 typedef unsigned int size_type;
 typedef signed int difference_type;
 
+typedef enum {
+    __FAILED__,
+    __WRONG__,
+    __PAUSED__,
+    __NORMAL__,
+    __COMPLETED__,
+} task_status;
 
 };
 
