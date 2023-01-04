@@ -7,10 +7,10 @@
 
 #include "basic_io.hpp"
 
-#define _HASH_TABLE_TEST_ 1
-#ifdef _HASH_TABLE_TEST_
+#define _HASH_TABLE_CHECK_ 1
+#ifdef _HASH_TABLE_CHECK_
 #include <unordered_set>
-#endif // _HASH_TABLE_TEST_
+#endif // _HASH_TABLE_CHECK_
 
 #include <memory>
 
@@ -764,7 +764,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::check() const
      * 3 = not in rehash, but %_rehash_buckets etc haven't been reset yet;
      * 4 = the number of traversed nodes is not equal to %_element_count;
     */
-#ifdef _HASH_TABLE_TEST_
+#ifdef _HASH_TABLE_CHECK_
     size_type _counter = 0;
     std::unordered_set<_Value> _uset;
     const bool _unique = _UniqueKey;
@@ -813,7 +813,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::check() const
     if (_counter != _element_count) {
         return 4;
     }
-#endif // _HASH_TABLE_TEST_
+#endif // _HASH_TABLE_CHECK_
     return 0;
 };
 

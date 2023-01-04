@@ -14,6 +14,8 @@ typedef enum {
     __COMPLETED__,
 } task_status;
 
+#define _CONTAINER_CHECK_ 1
+
 };
 
 #endif
