@@ -38,11 +38,13 @@ template <typename _Container> struct debug_base {
     typedef typename _Container::iterator iterator;
     typedef typename _Container::const_iterator const_iterator;
 
-    typedef bool (*check_fptr)(const _Container&);
+    typedef int (*out_check_fptr)(const _Container&);
+    typedef int (_Container::*check_fptr)() const;
     typedef void (_Container::*clear_fptr)();
 
     typedef size_type (_Container::*size_fptr)() const;
 
+    out_check_fptr _out_check = nullptr;
     check_fptr _check = nullptr;
     clear_fptr _clear = &container_type::clear;
     size_fptr _size = &container_type::size;
@@ -50,13 +52,13 @@ template <typename _Container> struct debug_base {
     container_type _container;
 
     debug_base() = default;
-    // debug_base(const self& _da) : _check(_da._check), _clear(_da._clear), _size(_da._size), _container(_da._container) {}
+    // debug_base(const self& _da) : _out_check(_da._out_check), _clear(_da._clear), _size(_da._size), _container(_da._container) {}
     virtual ~debug_base() = default;
 
     virtual void demo() = 0;
     void _M_print_container() const { std::cout << _container << std::endl;}
 
-    bool _M_reg_check() const;
+    int _M_reg_check() const;
     void _M_reg_clear();
     void _M_reg_size(bool _log = false) const;
 
@@ -102,6 +104,7 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
     typedef debug_base<_SeqContainer> base;
     typedef debug_seq_container<_SeqContainer> self;
     typedef typename base::container_type container_type;
+    typedef typename base::out_check_fptr out_check_fptr;
     typedef typename base::check_fptr check_fptr;
     typedef typename base::value_type value_type;
     typedef typename base::iterator iterator;
@@ -147,6 +150,7 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     typedef debug_asso_container<_AssoContainer> self;
     typedef debug_base<_AssoContainer> base;
     typedef typename base::container_type container_type;
+    typedef typename base::out_check_fptr out_check_fptr;
     typedef typename base::check_fptr check_fptr;
     typedef typename base::value_type value_type;
     typedef typename base::iterator iterator;
@@ -262,7 +266,12 @@ template <typename _SC> void debug_seq_container<_SC>::demo() {
         }
         _op.clear();
         _M_reset_cin();
+        if (this->_M_reg_check() != 0) {
+            ASP_ERR("error in container.\n");
+            break;
+        }
     }
+    _M_reset_cin();
 };
 template <typename _AC> void debug_asso_container<_AC>::demo() {
     key_type _k;
@@ -323,17 +332,26 @@ template <typename _AC> void debug_asso_container<_AC>::demo() {
         }
         _op.clear();
         _M_reset_cin();
+        if (this->_M_reg_check() != 0) {
+            ASP_ERR("error in container.\n");
+            break;
+        }
     }
     _M_reset_cin();
 };
 
 
 /// _M_reg_function
-template <typename _C> bool debug_base<_C>::_M_reg_check() const {
-    if (this->_check != nullptr) {
-        return _check(this->_container);
+template <typename _C> int debug_base<_C>::_M_reg_check() const {
+    int _out_check_ret = 0;
+    if (this->_out_check != nullptr) {
+        _out_check_ret = _out_check(this->_container);
     }
-    return true;
+    int _inner_check_ret = 0;
+    if (this->_check != nullptr) {
+        _inner_check_ret = (this->_container.*this->_check)();
+    }
+    return _out_check_ret + _inner_check_ret;
 };
 template <typename _C> void debug_base<_C>::_M_reg_clear() {
     if (this->_clear != nullptr) {
