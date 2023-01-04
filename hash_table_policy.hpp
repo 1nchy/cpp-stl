@@ -31,7 +31,8 @@ struct rehash_policy {
     // (1, y) indicates _rehash_buckets[y]
     typedef std::pair<short, size_type> bucket_index;
 
-    rehash_policy(float _z = 1.0) : _max_load_factor(_z), _next_resize(0) {}
+    rehash_policy(float _z = 1.0) : _max_load_factor(_z) {}
+    rehash_policy(bool _enable) : _enable_rehash(_enable) {}
 
     float max_load_factor() const { return _max_load_factor; }
     _State state() const { return _next_resize; }
@@ -59,11 +60,12 @@ struct rehash_policy {
 
     static const size_type _s_growth_factor = 2;
     // 负载因子，衡量桶的负载程度
-    float _max_load_factor;  // = _n_elt / _n_bkt
+    float _max_load_factor = 1.0;  // = _n_elt / _n_bkt
     // resize 后，能保存元素个数的最佳上限
-    mutable size_type _next_resize; // = _n_bkt * _max_load_factor
+    mutable size_type _next_resize = 0; // = _n_bkt * _max_load_factor
     bool _in_rehash = false;
     bucket_index _cur_process;
+    const bool _enable_rehash = true;
 };
 
 template <typename _Tp> struct hash_node : public node<_Tp> {
@@ -169,6 +171,9 @@ size_type rehash_policy::bkt_for_elements(size_type _n) const {
 }
 
 std::pair<bool, size_type> rehash_policy::need_rehash(size_type _n_bkt, size_type _n_elt, size_type _n_ins) const {
+    if (!_enable_rehash) {
+        return std::make_pair(false, 0);
+    }
     if (_n_elt + _n_ins > _next_resize) {
         float _min_bkts = ((float(_n_ins) + float(_n_elt)) / _max_load_factor);
         if (_min_bkts > _n_bkt) {
