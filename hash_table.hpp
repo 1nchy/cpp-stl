@@ -7,6 +7,11 @@
 
 #include "basic_io.hpp"
 
+#define _HASH_TABLE_TEST_ 1
+#ifdef _HASH_TABLE_TEST_
+#include <unordered_set>
+#endif // _HASH_TABLE_TEST_
+
 #include <memory>
 
 namespace asp {
@@ -253,6 +258,9 @@ public:
     void clear();
     ireturn_type insert(const value_type& _v);
     size_type erase(const key_type& _k);
+
+    // used for test
+    int check() const;
 
 protected:
     void _M_deallocate_buckets() {
@@ -546,7 +554,6 @@ _M_insert_unique_node(const bucket_index& _i, hash_code _c, node_type* _n)
 -> iterator {
     _n->_hash_code = _c;
     this->_M_insert_bucket_begin(_i, _n);
-    ++_element_count;
     return iterator(_n, _i, this);
 };
 
@@ -566,7 +573,6 @@ _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n)
     else {
         _M_insert_bucket_begin(_i, _n);
     }
-    ++_element_count;
     return iterator(_n, _i, this);
 };
 
@@ -584,6 +590,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_insert_uniq
     }
     _i = this->_M_bucket_insert_index(_c);
     node_type* _n = this->_M_allocate_node(_v);
+    ++_element_count;
     return _M_insert_unique_node(_i, _c, _n);
 };
 
@@ -597,6 +604,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_insert_mult
     const bucket_index _ins_i = this->_M_bucket_insert_index(_c);
     const bucket_index _i = this->_M_valid_bucket_index(_find_i) ? _find_i : _ins_i;
     node_type* _n = this->_M_allocate_node(_v);
+    ++_element_count;
     return _M_insert_multi_node(_i, _c, _n);
 };
 
@@ -745,6 +753,68 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::erase(const ke
     _M_rehash_if_required();
 
     return this->_M_erase(_k, asp::bool_t<_UniqueKey>());
+};
+template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::check() const
+-> int {
+    /**
+     * @return 0 = normal
+     * 1 = duplicate value in unique container;
+     * 2 = the same value(s) are stored not adjacent;
+     * 3 = not in rehash, but %_rehash_buckets etc haven't been reset yet;
+     * 4 = the number of traversed nodes is not equal to %_element_count;
+    */
+#ifdef _HASH_TABLE_TEST_
+    size_type _counter = 0;
+    std::unordered_set<_Value> _uset;
+    const bool _unique = _UniqueKey;
+    _Value _last_value = _Value();
+    for (size_type _i = 0; _i < _bucket_count; ++_i) {
+        node_type* _p = _buckets[_i];
+        while (_p != nullptr) {
+            ++_counter;
+            if (_uset.count(_p->val())) {
+                if (_unique) {
+                    return 1;
+                }
+                if (_last_value != _p->val()) {
+                    return 2;
+                }
+            }
+            _uset.insert(_p->val());
+            _last_value = _p->val();
+            _p = _p->_next;
+        }
+    }
+    if (!_rehash_policy._in_rehash) {
+        if (_rehash_buckets != nullptr || _rehash_bucket_count != 0) {
+            return 3;
+        }
+    }
+    else { // in rehash
+        for (size_type _i = 0; _i < _rehash_bucket_count; ++_i) {
+            node_type* _p = _rehash_buckets[_i];
+            while (_p != nullptr) {
+                ++_counter;
+                if (_uset.count(_p->val())) {
+                    if (_unique) {
+                        return 1;
+                    }
+                    if (_last_value != _p->val()) {
+                        return 2;
+                    }
+                }
+                _uset.insert(_p->val());
+                _last_value = _p->val();
+                _p = _p->_next;
+            }
+        }
+    }
+    if (_counter != _element_count) {
+        return 4;
+    }
+#endif // _HASH_TABLE_TEST_
+    return 0;
 };
 
 /// rehash_policy

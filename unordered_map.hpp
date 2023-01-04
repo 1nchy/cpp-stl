@@ -50,6 +50,7 @@ public:
     void clear() { _h.clear(); }
     iterator find(const key_type& _k) { return _h.find(_k); }
     const_iterator find(const key_type& _k) const { return _h.find(_k); }
+    int check() const { return _h.check(); }
 
 /// output
     template <typename _K, typename _T, typename _H, typename _A>
