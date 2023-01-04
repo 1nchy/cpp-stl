@@ -878,9 +878,9 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_step_rehash
 template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_rehash_if_required(size_type _step)
 -> void {
-    auto _rehash_info = this->_M_need_rehash();
-    if (_rehash_info.first) {
-        if (!this->_M_in_rehash()) {
+    if (!this->_M_in_rehash()) {    
+        auto _rehash_info = this->_M_need_rehash();
+        if (_rehash_info.first) {
             this->_M_start_rehash(_rehash_info.second);
         }
     }
