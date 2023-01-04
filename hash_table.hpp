@@ -229,6 +229,9 @@ public:
     template <typename _K, typename _V, typename _EK, bool _UK, typename _H, typename _A>
      friend std::ostream& operator<<(std::ostream& os, const hash_table<_K, _V, _EK, _UK, _H, _A>& _h);
 
+    template <typename _K, typename _V, typename _EK, bool _UK, bool _C, typename _H, typename _A>
+     friend struct hash_node_iterator;
+
 public:
     hash_table();
     hash_table(const self& _ht);
@@ -242,7 +245,7 @@ public:
     const_iterator cend() const { return const_iterator(nullptr, self::_s_illegal_index, this); }
     size_type size() const { return _element_count; }
     bool empty() const { return _element_count == 0; }
-    size_type bucket_count() const { return _rehash_policy._in_rehash ? _rehash_bucket_count : _bucket_count; }
+    size_type bucket_count() const { return _M_in_rehash() ? _rehash_bucket_count : _bucket_count; }
 
     iterator find(const key_type& _k);
     const_iterator find(const key_type& _k) const;
@@ -251,6 +254,7 @@ public:
     ireturn_type insert(const value_type& _v);
     size_type erase(const key_type& _k);
 
+protected:
     void _M_deallocate_buckets() {
         base::_M_deallocate_buckets(_buckets, _bucket_count);
         base::_M_deallocate_buckets(_rehash_buckets, _rehash_bucket_count);
@@ -305,6 +309,13 @@ public:
     iterator _M_insert(const value_type& _v, asp::false_type);
     size_type _M_erase(const key_type& _k, asp::true_type);
     size_type _M_erase(const key_type& _k, asp::false_type);
+
+    /// rehash policy
+    std::pair<bool, size_type> _M_need_rehash(size_type _ins) const { return this->_rehash_policy.need_rehash(_bucket_count, _element_count, _ins); }
+    bool _M_in_rehash() const { return this->_rehash_policy._in_rehash; }
+    void _M_start_rehash();
+    void _M_finish_rehash();
+    void _M_rehash_step(size_type _step = 1);
 };
 
 template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey, typename _Hash, typename _Alloc>
@@ -388,7 +399,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_valid_bucke
     if (_i.first == 0) {
         return _i.second >= 0 && _i.second < this->_bucket_count;
     }
-    if (_i.first == 1 && this->_rehash_policy._in_rehash) {
+    if (_i.first == 1 && this->_M_in_rehash()) {
         return _i.second >= 0 && _i.second < this->_rehash_bucket_count;
     }
     return false;
@@ -398,7 +409,7 @@ template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey,
 hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_bucket_insert_index(hash_code _c) const
 -> bucket_index {
     // always insert %_p into _rehash_bucket if %_in_rehash
-    if (this->_rehash_policy._in_rehash) {
+    if (this->_M_in_rehash()) {
         bucket_index _i1 = std::make_pair(1, _c % this->_rehash_bucket_count);
         return _i1;
     }
@@ -416,7 +427,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_bucket_find
             return _i0;
         }
     }
-    if (this->_rehash_policy._in_rehash) {
+    if (this->_M_in_rehash()) {
         bucket_index _i1 = std::make_pair(1, _c % this->_rehash_bucket_count);
         for (node_type* _bkt = this->_rehash_buckets[_i1.second]; _bkt != nullptr; _bkt = _bkt->_next) {
             if (this->_M_equals(_k, _c, _bkt)) {
@@ -437,7 +448,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_next_bucket
     do {
         ++_i.second;
         if (_i.first == 0 && _i.second >= this->_bucket_count) {
-            if (this->_rehash_policy._in_rehash) {
+            if (this->_M_in_rehash()) {
                 _i.first = 1; _i.second = 0;
             }
             else {
@@ -445,7 +456,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_next_bucket
                 break;
             }
         }
-        // if %_i.first == 1, then %_rehash_policy._in_rehash = true
+        // if %_i.first == 1, then %_M_in_rehash() = true
         if (_i.first == 1 && _i.second >= this->_rehash_bucket_count) {
             _i.first = -1; _i.second = 0;
             break;
@@ -459,7 +470,7 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::_M_bucket(cons
     if (!_M_valid_bucket_index(_i)) {
         return nullptr;
     }
-    if (_i.first == 1 && _rehash_policy._in_rehash) {
+    if (_i.first == 1 && _M_in_rehash()) {
         return this->_rehash_buckets[_i.second];
     }
     else if (_i.first == 0) {
