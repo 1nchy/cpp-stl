@@ -766,23 +766,24 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::check() const
     */
 #ifdef _HASH_TABLE_CHECK_
     size_type _counter = 0;
-    std::unordered_set<_Value> _uset;
+    std::unordered_set<key_type> _uset;
     const bool _unique = _UniqueKey;
-    _Value _last_value = _Value();
+    asp::decay_t<key_type> _last_value;
     for (size_type _i = 0; _i < _bucket_count; ++_i) {
         node_type* _p = _buckets[_i];
         while (_p != nullptr) {
+            const key_type _k = this->_extract_key(_p->val());
             ++_counter;
-            if (_uset.count(_p->val())) {
+            if (_uset.count(_k)) {
                 if (_unique) {
                     return 1;
                 }
-                if (_last_value != _p->val()) {
+                if (_last_value != _k) {
                     return 2;
                 }
             }
-            _uset.insert(_p->val());
-            _last_value = _p->val();
+            _uset.insert(_k);
+            _last_value = _k;
             _p = _p->_next;
         }
     }
@@ -795,17 +796,18 @@ hash_table<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc>::check() const
         for (size_type _i = 0; _i < _rehash_bucket_count; ++_i) {
             node_type* _p = _rehash_buckets[_i];
             while (_p != nullptr) {
+                const key_type _k = this->_extract_key(_p->val());
                 ++_counter;
-                if (_uset.count(_p->val())) {
+                if (_uset.count(_k)) {
                     if (_unique) {
                         return 1;
                     }
-                    if (_last_value != _p->val()) {
+                    if (_last_value != _k) {
                         return 2;
                     }
                 }
-                _uset.insert(_p->val());
-                _last_value = _p->val();
+                _uset.insert(_k);
+                _last_value = _k;
                 _p = _p->_next;
             }
         }
