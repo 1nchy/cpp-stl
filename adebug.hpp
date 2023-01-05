@@ -61,7 +61,7 @@ template <typename _Container> struct debug_base {
     void _M_print_container() const { std::cout << _container << std::endl;}
 
     int _M_reg_check() const;
-    void _M_reg_clear();
+    void _M_reg_clear(bool _log = false);
     void _M_reg_size(bool _log = false) const;
 
     // std::string _M_string_from_iterator(iterator _i) const;
@@ -133,16 +133,19 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
     earse_fptr _erase = nullptr;
 
 /// register function
-    void _M_reg_push_back(const value_type& _v);
-    void _M_reg_pop_back();
-    void _M_reg_push_front(const value_type& _v);
-    void _M_reg_pop_front();
+    void _M_reg_push_back(const value_type& _v, bool _log = false);
+    void _M_reg_pop_back(bool _log = false);
+    void _M_reg_push_front(const value_type& _v, bool _log = false);
+    void _M_reg_pop_front(bool _log = false);
     void _M_reg_insert(const_iterator _i, const value_type& _v, bool _log = false);
     void _M_reg_erase(const_iterator _i, bool _log = false);
 
 /// demo function
     void demo() override;
     void demo_from_istream(std::istream& _is, bool _log, bool _print_container);
+
+    void auto_test();
+    void init_stream(std::stringstream& _is, size_type _n);
 
 protected:
 /// helper
@@ -223,21 +226,21 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
         case base::__PUSH_BACK__: {
             _is >> _v;
             if (_M_end_of_file(_is)) { break; }
-            this->_M_reg_push_back(_v);
+            this->_M_reg_push_back(_v, _log);
             if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__POP_BACK__: {
-            this->_M_reg_pop_back();
+            this->_M_reg_pop_back(_log);
             if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__PUSH_FRONT__: {
             _is >> _v;
             if (_M_end_of_file(_is)) { break; }
-            this->_M_reg_push_front(_v);
+            this->_M_reg_push_front(_v, _log);
             if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__POP_FRONT__: {
-            this->_M_reg_pop_front();
+            this->_M_reg_pop_front(_log);
             if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__INSERT__: {
@@ -259,7 +262,7 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
             if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__CLEAR__: {
-            this->_M_reg_clear();
+            this->_M_reg_clear(_log);
             if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__SIZE__: {
@@ -280,9 +283,57 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
             ASP_ERR("error(%d) in container.\n", _ret);
             break;
         }
+        std::cout << std::flush;
     }
     _M_reset_cin(_is);
 };
+template <typename _SC> void debug_seq_container<_SC>::auto_test() {
+    std::stringstream _ss;
+    init_stream(_ss, 1000);
+    demo_from_istream(_ss, true, false);
+};
+template <typename _SC> void debug_seq_container<_SC>::init_stream(std::stringstream& _is, size_type _n) {
+    /**
+pop_back
+*insert(&0, 10) = 10)
+push_front(2)
+pop_back
+    */
+    const int max_key_value = 31;
+    const int max_value = 255;
+    const int modify_func = (_push_front != nullptr && _pop_front != nullptr) ? 3 : 2;
+    srand((int)time(nullptr));
+    while (_n--) {    
+        int oper = rand() % 7;
+        oper /= 3;
+        if (oper == 0) { // add
+            oper = rand() % modify_func;
+            _is << (oper == 0 ? "i" : (oper == 1 ? "push" : "push_front")) << ' ';
+            if (oper == 0) {
+                size_type _i;
+                _i = rand() % (2 * (this->_container.size()) + 1);
+                _is << _i << ' ';
+            }
+            value_type _v = rand() % max_key_value;
+            _is << _v << ' ';
+        }
+        else if (oper == 1) { // del
+            oper = rand() % modify_func;
+            _is << (oper == 0 ? "e" : (oper == 1 ? "pop" : "pop_front")) << ' ';
+            if (oper == 0) {
+                size_type _i;
+                _i = rand() % (2 * (this->_container.size()) + 1);
+                _is << _i << ' ';
+            }
+        }
+        else { // query
+            int op = rand() % 2;
+            _is << (op == 0 ? "clear" : "size") << ' ';
+        }
+    }
+    _is << 'p' << ' ';
+};
+
 template <typename _AC> void debug_asso_container<_AC>::demo() {
     std::cout << '[' << typeid(asp::decay_t<_AC>).name() << "]:" << std::endl;
     demo_from_istream(std::cin, true, true);
@@ -318,7 +369,7 @@ template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::i
             if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__CLEAR__: {
-            this->_M_reg_clear();
+            this->_M_reg_clear(_log);
             if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__COUNT__: {
@@ -349,6 +400,7 @@ template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::i
             ASP_ERR("error(%d) in container.\n", _ret);
             break;
         }
+        std::cout << std::flush;
     }
     _M_reset_cin(_is);
 };
@@ -408,9 +460,12 @@ template <typename _C> int debug_base<_C>::_M_reg_check() const {
     }
     return _out_check_ret + _inner_check_ret;
 };
-template <typename _C> void debug_base<_C>::_M_reg_clear() {
+template <typename _C> void debug_base<_C>::_M_reg_clear(bool _log) {
     if (this->_clear != nullptr) {
         (this->_container.*this->_clear)();
+        if (_log) {
+            std::cout << "clear" << std::endl;;
+        }
     }
 };
 template <typename _C> void debug_base<_C>::_M_reg_size(bool _log) const {
@@ -423,24 +478,36 @@ template <typename _C> void debug_base<_C>::_M_reg_size(bool _log) const {
         }
     }
 };
-template <typename _C> void debug_seq_container<_C>::_M_reg_push_back(const value_type& _v) {
+template <typename _C> void debug_seq_container<_C>::_M_reg_push_back(const value_type& _v, bool _log) {
     if (this->_push_back != nullptr) {
         (this->_container.*_push_back)(_v);
+        if (_log) {
+            std::cout << "push_back(" << _v << ")" << std::endl;
+        }
     }
 };
-template <typename _C> void debug_seq_container<_C>::_M_reg_pop_back() {
+template <typename _C> void debug_seq_container<_C>::_M_reg_pop_back(bool _log) {
     if (this->_push_back != nullptr) {
         (this->_container.*_pop_back)();
+        if (_log) {
+            std::cout << "pop_back" << std::endl;
+        }
     }
 };
-template <typename _C> void debug_seq_container<_C>::_M_reg_push_front(const value_type& _v) {
+template <typename _C> void debug_seq_container<_C>::_M_reg_push_front(const value_type& _v, bool _log) {
     if (this->_push_front != nullptr) {
         (this->_container.*_push_front)(_v);
+        if (_log) {
+            std::cout << "push_front(" << _v << ")" << std::endl;
+        }
     }
 };
-template <typename _C> void debug_seq_container<_C>::_M_reg_pop_front() {
+template <typename _C> void debug_seq_container<_C>::_M_reg_pop_front(bool _log) {
     if (this->_pop_front != nullptr) {
         (this->_container.*_pop_front)();
+        if (_log) {
+            std::cout << "pop_front" << std::endl;
+        }
     }
 };
 template <typename _C> void debug_seq_container<_C>::_M_reg_insert(const_iterator _i, const value_type& _v, bool _log) {
@@ -461,7 +528,7 @@ template <typename _C> void debug_seq_container<_C>::_M_reg_erase(const_iterator
         }
         auto _p = (this->_container.*_erase)(_i);
         if (_log) {
-            std::cout << " = " << this->_M_string_from_iterator(_p) << ")" << std::endl;
+            std::cout << " = (" << this->_M_string_from_iterator(_p) << ")" << std::endl;
         }
     }
 };
