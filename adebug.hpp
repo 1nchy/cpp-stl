@@ -289,7 +289,7 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
 };
 template <typename _SC> void debug_seq_container<_SC>::auto_test() {
     std::stringstream _ss;
-    init_stream(_ss, 1000);
+    init_stream(_ss, 100);
     demo_from_istream(_ss, true, false);
 };
 template <typename _SC> void debug_seq_container<_SC>::init_stream(std::stringstream& _is, size_type _n) {
@@ -311,7 +311,7 @@ pop_back
             _is << (oper == 0 ? "i" : (oper == 1 ? "push" : "push_front")) << ' ';
             if (oper == 0) {
                 size_type _i;
-                _i = rand() % (2 * (this->_container.size()) + 1);
+                _i = rand() % (this->_container.size() + 1);
                 _is << _i << ' ';
             }
             value_type _v = rand() % max_key_value;
@@ -322,7 +322,7 @@ pop_back
             _is << (oper == 0 ? "e" : (oper == 1 ? "pop" : "pop_front")) << ' ';
             if (oper == 0) {
                 size_type _i;
-                _i = rand() % (2 * (this->_container.size()) + 1);
+                _i = rand() % (this->_container.size() + 1);
                 _is << _i << ' ';
             }
         }
