@@ -89,6 +89,7 @@ public:
         emplace_back(std::move(_x));
     }
     void pop_back() {
+        if (empty()) { return; }
         if (this->_data._finish._cur != this->_data._finish._first) {
             --this->_data._finish._cur;
             _M_destroy_element(this->_data._finish);
@@ -110,6 +111,7 @@ public:
         emplace_front(std::move(_x));
     }
     void pop_front() {
+        if (empty()) { return; }
         if (this->_data._start._cur != this->_data._start._last - 1) {
             _M_destroy_element(this->_data._start);
             ++this->_data._start;
