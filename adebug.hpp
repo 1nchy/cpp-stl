@@ -8,6 +8,8 @@
 #include <map>
 #include <unordered_map>
 
+#include <ctime>
+
 #include "basic_param.hpp"
 #include "log_utils.hpp"
 #include "type_traits.hpp"
@@ -189,6 +191,9 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     void demo() override;
     void demo_from_istream(std::istream& _is, bool _log, bool _print_container);
 
+    void auto_test();
+    void init_stream(std::stringstream& _is, size_type _n);
+
 private:
     bool _b_kv_self = asp::is_same<key_type, value_type>::value;
     value_type _M_get_value_from(std::istream&) const;
@@ -346,7 +351,49 @@ template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::i
         }
     }
     _M_reset_cin(_is);
-}
+};
+template <typename _AC> void debug_asso_container<_AC>::auto_test() {
+    std::stringstream _ss;
+    init_stream(_ss, 1000);
+    demo_from_istream(_ss, true, false);
+};
+template <typename _AC> void debug_asso_container<_AC>::init_stream(std::stringstream& _is, size_type _n) {
+    /**
+     * 
+    */
+    const int max_key_value = 31;
+    const int max_value = 255;
+    srand((int)time(nullptr));
+    while (_n--) {    
+        int oper = rand() % 7;
+        oper /= 3;
+        if (oper == 0) { // add
+            _is << 'a';
+            key_type _k;
+            _k = rand() % max_key_value;
+            _is << ' ' << _k << ' ';
+            if (!_b_kv_self) {
+                mapped_type _m;
+                _m = rand() % max_value;
+                _is << _m << ' ';
+            }
+        }
+        else if (oper == 1) { // del
+            _is << 'd';
+            key_type _k;
+            _k = rand() % max_key_value;
+            _is << ' ' << _k << ' ';
+        }
+        else { // query
+            int op = rand() % 4;
+            _is << (op == 0 ? "c" : (op == 1 ? "f" : (op == 2 ? "clear" : "size")));
+            key_type _k;
+            _k = rand() % max_key_value;
+            _is << ' ' << _k << ' ';
+        }
+    }
+    _is << 'p' << ' ';
+};
 
 
 /// _M_reg_function
