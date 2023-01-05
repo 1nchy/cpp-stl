@@ -140,6 +140,7 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
 
 /// demo function
     void demo() override;
+    void demo_from_istream(std::istream& _is, bool _log, bool _print_container);
 
 protected:
 /// helper
@@ -186,159 +187,166 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
 
 /// demo function
     void demo() override;
+    void demo_from_istream(std::istream& _is, bool _log, bool _print_container);
 
 private:
     bool _b_kv_self = asp::is_same<key_type, value_type>::value;
     value_type _M_get_value_from(std::istream&) const;
 };
 
-static bool _M_end_of_file() {
-    return std::cin.eof() || std::cin.fail();
+static bool _M_end_of_file(std::istream& _is = std::cin) {
+    return _is.eof() || _is.fail();
 };
-static void _M_reset_cin() {
-    std::cin.clear(); // std::cin.sync();
+static void _M_reset_cin(std::istream& _is = std::cin) {
+    _is.clear(); // _is.sync();
 }
 
 template <typename _SC> void debug_seq_container<_SC>::demo() {
+    std::cout << '[' << typeid(asp::decay_t<_SC>).name() << "]:" << std::endl;
+    demo_from_istream(std::cin, true, true);
+};
+template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::istream& _is, bool _log, bool _print_container) {
     size_type _i; // iterator_index
     difference_type _di; // input_index
     value_type _v;
     std::string _op;
-    std::cout << '[' << typeid(asp::decay_t<_SC>).name() << "]:" << std::endl;
-    while (!std::cin.eof()) {
-        std::cin >> _op;
-        if (_M_end_of_file()) { break; }
+    while (!_is.eof()) {
+        _is >> _op;
+        if (_M_end_of_file(_is)) { break; }
         operator_id _id = this->_M_get_operator_id(_op);
         switch (_id) {
         case base::__PUSH_BACK__: {
-            std::cin >> _v;
-            if (_M_end_of_file()) { break; }
+            _is >> _v;
+            if (_M_end_of_file(_is)) { break; }
             this->_M_reg_push_back(_v);
-            this->_M_print_container();
+            if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__POP_BACK__: {
             this->_M_reg_pop_back();
-            this->_M_print_container();
+            if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__PUSH_FRONT__: {
-            std::cin >> _v;
-            if (_M_end_of_file()) { break; }
+            _is >> _v;
+            if (_M_end_of_file(_is)) { break; }
             this->_M_reg_push_front(_v);
-            this->_M_print_container();
+            if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__POP_FRONT__: {
             this->_M_reg_pop_front();
-            this->_M_print_container();
+            if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__INSERT__: {
-            std::cin >> _di;
-            if (_M_end_of_file()) { break; }
-            std::cin >> _v;
-            if (_M_end_of_file()) { break; }
+            _is >> _di;
+            if (_M_end_of_file(_is)) { break; }
+            _is >> _v;
+            if (_M_end_of_file(_is)) { break; }
             _i = _M_get_positive_offset(_di, false);
             const_iterator _p = this->_container.cbegin() + _i;
-            this->_M_reg_insert(_p, _v, true);
-            this->_M_print_container();
+            this->_M_reg_insert(_p, _v, _log);
+            if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__ERASE__: {
-            std::cin >> _di;
-            if (_M_end_of_file()) { break; }
+            _is >> _di;
+            if (_M_end_of_file(_is)) { break; }
             _i = _M_get_positive_offset(_di, true);
             const_iterator _p = this->_container.cbegin() + _i;
-            this->_M_reg_erase(_p, true);
-            this->_M_print_container();
+            this->_M_reg_erase(_p, _log);
+            if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__CLEAR__: {
             this->_M_reg_clear();
-            this->_M_print_container();
+            if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__SIZE__: {
-            this->_M_reg_size(true);
+            this->_M_reg_size(_log);
         }; break;
         case base::__PRINT__: {
             this->_M_print_container();
         }; break;
         case base::__QUIT__: {
-            _M_reset_cin();
+            _M_reset_cin(_is);
             return;
         }; break;
         default: break;
         }
         _op.clear();
-        _M_reset_cin();
+        _M_reset_cin(_is);
         if (auto _ret = this->_M_reg_check()) {
             ASP_ERR("error(%d) in container.\n", _ret);
             break;
         }
     }
-    _M_reset_cin();
+    _M_reset_cin(_is);
 };
 template <typename _AC> void debug_asso_container<_AC>::demo() {
+    std::cout << '[' << typeid(asp::decay_t<_AC>).name() << "]:" << std::endl;
+    demo_from_istream(std::cin, true, true);
+};
+template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::istream& _is, bool _log, bool _print_container) {
     key_type _k;
     // value_type _v;
     mapped_type _m;
     std::string _op;
-    std::cout << '[' << typeid(asp::decay_t<_AC>).name() << "]:" << std::endl;
-    while (!std::cin.eof()) {
-        std::cin >> _op;
-        if (_M_end_of_file()) { break; }
+    while (!_is.eof()) {
+        _is >> _op;
+        if (_M_end_of_file(_is)) { break; }
         operator_id _id = this->_M_get_operator_id(_op);
         switch (_id) {
         case base::__ADD__: {
-            value_type _v = this->_M_get_value_from(std::cin);
-            if (_M_end_of_file()) { break; }
-            this->_M_reg_insert(_v, true);
-            this->_M_print_container();
+            value_type _v = this->_M_get_value_from(_is);
+            if (_M_end_of_file(_is)) { break; }
+            this->_M_reg_insert(_v, _log);
+            if (_log && _print_container) this->_M_print_container();
         }; break;
         // case base::__SET__: {
-        //     std::cin >> _k;
-        //     if (_M_end_of_file()) { break; }
-        //     std::cin >> _m;
-        //     if (_M_end_of_file()) { break; }
+        //     _is >> _k;
+        //     if (_M_end_of_file(_is)) { break; }
+        //     _is >> _m;
+        //     if (_M_end_of_file(_is)) { break; }
         //     this->_M_reg_set(_k, _m, true);
         //     this->_M_print_container();
         // }; break;
         case base::__DELETE__: {
-            std::cin >> _k;
-            if (_M_end_of_file()) { break; }
-            this->_M_reg_erase(_k, true);
-            this->_M_print_container();
+            _is >> _k;
+            if (_M_end_of_file(_is)) { break; }
+            this->_M_reg_erase(_k, _log);
+            if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__CLEAR__: {
             this->_M_reg_clear();
-            this->_M_print_container();
+            if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__COUNT__: {
-            std::cin >> _k;
-            if (_M_end_of_file()) { break; }
-            this->_M_reg_count(_k, true);
+            _is >> _k;
+            if (_M_end_of_file(_is)) { break; }
+            this->_M_reg_count(_k, _log);
         }; break;
         case base::__FIND__: {
-            std::cin >> _k;
-            if (_M_end_of_file()) { break; }
-            this->_M_reg_find(_k, true);
+            _is >> _k;
+            if (_M_end_of_file(_is)) { break; }
+            this->_M_reg_find(_k, _log);
         }; break;
         case base::__SIZE__: {
-            this->_M_reg_size(true);
+            this->_M_reg_size(_log);
         }; break;
         case base::__PRINT__: {
             this->_M_print_container();
         }; break;
         case base::__QUIT__: {
-            _M_reset_cin();
+            _M_reset_cin(_is);
             return;
         }; break;
         default: break;
         }
         _op.clear();
-        _M_reset_cin();
+        _M_reset_cin(_is);
         if (auto _ret = this->_M_reg_check()) {
             ASP_ERR("error(%d) in container.\n", _ret);
             break;
         }
     }
-    _M_reset_cin();
-};
+    _M_reset_cin(_is);
+}
 
 
 /// _M_reg_function
