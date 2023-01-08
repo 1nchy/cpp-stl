@@ -1,3 +1,6 @@
+#ifndef _ASP_RANDOM_HPP_
+#define _ASP_RANDOM_HPP_
+
 #include <ctime>
 #include <cstdlib>
 #include <cstdarg>
@@ -11,6 +14,8 @@ namespace asp {
     constexpr static const size_type _s_percentage_base = 100;
     // end with 0
     size_type _S_random_unsigned(double _n1, ...);
+    size_type _S_random_unsigned(std::initializer_list<double> _il);
+    template <size_type _N> size_type _S_random_unsigned(const std::array<double, _N>& _a);
 
 
 
@@ -31,6 +36,31 @@ namespace asp {
         va_end(_l);
         return _ret;
     }
+    size_type _S_random_unsigned(std::initializer_list<double> _il) {
+        _S_init_random_seed();
+        size_type _r = rand() % _s_percentage_base;
+        size_type _sum = 0;
+        size_type _ret = 0;
+        for (auto _it = _il.begin(); _it != _il.end(); ++_it, ++_ret) {
+            _sum += (*_it * _s_percentage_base);
+            if (_sum > _r) {
+                return _ret;
+            }
+        }
+        return _ret;
+    }
+    template <size_type _N> size_type _S_random_unsigned(const std::array<double, _N>& _a) {
+        _S_init_random_seed();
+        size_type _r = rand() % _s_percentage_base;
+        size_type _sum = 0;
+        for (size_type _i = 0; _i < _N; ++_i) {
+            _sum += (_a[_i] * _s_percentage_base);
+            if (_sum > _r) {
+                return _i;
+            }
+        }
+        return _N;
+    }
 
 
 /// random seed initialization
@@ -43,3 +73,5 @@ namespace asp {
         }
     }
 };
+
+#endif // _ASP_RANDOM_HPP_
