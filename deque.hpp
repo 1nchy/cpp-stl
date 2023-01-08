@@ -242,7 +242,7 @@ protected:
         else {
             size_type _new_map_size = this->_data._map_size + (std::max(this->_data._map_size, _nodes_to_add)) + 2;
             map_pointer _new_map = this->_M_allocate_map(_new_map_size);
-            _new_nstart = this->_data._map + (_new_map_size - _new_num_nodes) / 2;
+            _new_nstart = _new_map + (_new_map_size - _new_num_nodes) / 2;
             std::copy(this->_data._start._node, this->_data._finish._node + 1, _new_nstart);
             this->_M_deallocate_map(this->_data._map, this->_data._map_size);
             this->_data._map = _new_map;
@@ -268,14 +268,14 @@ protected:
         else {
             size_type _new_map_size = this->_data._map_size + (std::max(this->_data._map_size, _nodes_to_add)) + 2;
             map_pointer _new_map = this->_M_allocate_map(_new_map_size);
-            _new_nstart = this->_data._map + (_new_map_size - _new_num_nodes) / 2 + _nodes_to_add;
+            _new_nstart = _new_map + (_new_map_size - _new_num_nodes) / 2 + _nodes_to_add;
             std::copy(this->_data._start._node, this->_data._finish._node + 1, _new_nstart);
             this->_M_deallocate_map(this->_data._map, this->_data._map_size);
             this->_data._map = _new_map;
             this->_data._map_size = _new_map_size;
         }
         this->_data._start._M_set_node(_new_nstart);
-        this->_data._finish._M_set_node(_new_nstart + _new_num_nodes - 1);
+        this->_data._finish._M_set_node(_new_nstart + _old_num_nodes - 1);
     }
 
     /* to make sure at least %_n elements exist at back, if there's no enough space, then reallocate.
