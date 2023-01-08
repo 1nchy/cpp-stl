@@ -262,7 +262,7 @@ protected:
                 std::copy(this->_data._start._node, this->_data._finish._node + 1, _new_nstart);
             }
             else {
-                std::copy_backward(this->_data._start._node, this->_data._finish._node, _new_nstart + _old_num_nodes);
+                std::copy_backward(this->_data._start._node, this->_data._finish._node + 1, _new_nstart + _old_num_nodes);
             }
         }
         else {
