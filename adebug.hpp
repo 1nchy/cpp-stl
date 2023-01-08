@@ -14,6 +14,7 @@
 #include "log_utils.hpp"
 #include "type_traits.hpp"
 #include "basic_io.hpp"
+#include "random.hpp"
 
 /**
  * automatic test of container.
@@ -32,6 +33,8 @@ namespace asp {
 template <typename _Container> struct debug_base;
 template <typename _SequenceContainer> struct debug_seq_container;
 template <typename _AssociativeContainer> struct debug_asso_container;
+
+static void _S_pause() {}
 
 template <typename _Container> struct debug_base {
     typedef debug_base<_Container> self;
@@ -76,6 +79,7 @@ template <typename _Container> struct debug_base {
         __PRINT__,
         __QUIT__,
         __NONE__,
+        __PAUSE__, // used to debug
     };
 
     const std::unordered_map<std::string, operator_id> _operator_map = {
@@ -90,7 +94,8 @@ template <typename _Container> struct debug_base {
         {"i", __INSERT__}, {"e", __ERASE__},
         {"l", __CLEAR__}, {"c", __COUNT__},
         {"quit", __QUIT__}, {"q", __QUIT__},
-        {"print", __PRINT__}, {"p", __PRINT__}
+        {"print", __PRINT__}, {"p", __PRINT__},
+        {"pause", __PAUSE__}
     };
     
     operator_id _M_get_operator_id(const std::string& _op) {
@@ -275,6 +280,9 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
             _M_reset_cin(_is);
             return;
         }; break;
+        case base::__PAUSE__: {
+            _S_pause();
+        }; break;
         default: break;
         }
         _op.clear();
@@ -289,38 +297,48 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
 };
 template <typename _SC> void debug_seq_container<_SC>::auto_test() {
     std::stringstream _ss;
-    init_stream(_ss, 100);
-    demo_from_istream(_ss, true, false);
+    init_stream(_ss, 1000);
+    // const std::string _order_str = _ss.str();
+    // ASP_LOG("order: %s.\n", _order_str.c_str());
+    // _ss.clear();
+    // _ss.str(_order_str);
+    // const std::string _special_str = "";
+    // _ss.str(_special_str);
+    demo_from_istream(_ss, true, true);
 };
 template <typename _SC> void debug_seq_container<_SC>::init_stream(std::stringstream& _is, size_type _n) {
-    /**
-pop_back
-*insert(&0, 10) = 10)
-push_front(2)
-pop_back
-    */
-    const int max_key_value = 31;
-    const int max_value = 255;
-    const int modify_func = (_push_front != nullptr && _pop_front != nullptr) ? 3 : 2;
-    srand((int)time(nullptr));
-    while (_n--) {    
-        int oper = rand() % 7;
-        oper /= 3;
-        if (oper == 0) { // add
-            oper = rand() % modify_func;
-            _is << (oper == 0 ? "i" : (oper == 1 ? "push" : "push_front")) << ' ';
-            if (oper == 0) {
+    const int _max_key_value = 31;
+    const int _modify_func = (_push_front != nullptr && _pop_front != nullptr) ? 3 : 2;
+    const size_type _n_bak = _n;
+    std::array<double, 3> _add_array {0.6, 0.3, 0.1};
+    std::array<double, 3> _del_array {0.3, 0.6, 0.1};
+    std::array<double, 3> _normal_array {0.45, 0.45, 0.1};
+    while (_n--) {
+        size_type _oper = 0;
+        if (_n > 2 * _n_bak / 3) {
+            _oper = asp::_S_random_unsigned<3>(_add_array);
+        }
+        else if (_n > _n_bak / 3) {
+            _oper = asp::_S_random_unsigned<3>(_normal_array);
+        }
+        else {
+            _oper = asp::_S_random_unsigned<3>(_del_array);
+        }
+        if (_oper == 0) { // add
+            _oper = rand() % _modify_func;
+            _is << (_oper == 0 ? "i" : (_oper == 1 ? "push" : "push_front")) << ' ';
+            if (_oper == 0) {
                 size_type _i;
                 _i = rand() % (this->_container.size() + 1);
                 _is << _i << ' ';
             }
-            value_type _v = rand() % max_key_value;
+            value_type _v = rand() % _max_key_value;
             _is << _v << ' ';
         }
-        else if (oper == 1) { // del
-            oper = rand() % modify_func;
-            _is << (oper == 0 ? "e" : (oper == 1 ? "pop" : "pop_front")) << ' ';
-            if (oper == 0) {
+        else if (_oper == 1) { // del
+            _oper = rand() % _modify_func;
+            _is << (_oper == 0 ? "e" : (_oper == 1 ? "pop" : "pop_front")) << ' ';
+            if (_oper == 0) {
                 size_type _i;
                 _i = rand() % (this->_container.size() + 1);
                 _is << _i << ' ';
@@ -413,34 +431,34 @@ template <typename _AC> void debug_asso_container<_AC>::init_stream(std::strings
     /**
      * 
     */
-    const int max_key_value = 31;
-    const int max_value = 255;
+    const int _max_key_value = 31;
+    const int _max_value = 255;
     srand((int)time(nullptr));
     while (_n--) {    
-        int oper = rand() % 7;
-        oper /= 3;
-        if (oper == 0) { // add
+        int _oper = rand() % 7;
+        _oper /= 3;
+        if (_oper == 0) { // add
             _is << 'a';
             key_type _k;
-            _k = rand() % max_key_value;
+            _k = rand() % _max_key_value;
             _is << ' ' << _k << ' ';
             if (!_b_kv_self) {
                 mapped_type _m;
-                _m = rand() % max_value;
+                _m = rand() % _max_value;
                 _is << _m << ' ';
             }
         }
-        else if (oper == 1) { // del
+        else if (_oper == 1) { // del
             _is << 'd';
             key_type _k;
-            _k = rand() % max_key_value;
+            _k = rand() % _max_key_value;
             _is << ' ' << _k << ' ';
         }
         else { // query
             int op = rand() % 4;
             _is << (op == 0 ? "c" : (op == 1 ? "f" : (op == 2 ? "clear" : "size")));
             key_type _k;
-            _k = rand() % max_key_value;
+            _k = rand() % _max_key_value;
             _is << ' ' << _k << ' ';
         }
     }
