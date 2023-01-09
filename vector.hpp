@@ -115,6 +115,7 @@ public:
         emplace_back(std::move(_x));
     }
     void pop_back() {
+        if (empty()) { return; }
         --this->m_data.finish;
         alloc_traits::destroy(this->m_data, this->m_data.finish);
     }
