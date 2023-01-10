@@ -6,6 +6,50 @@
 namespace asp {
 
 template <typename _Tp> struct bitree_node;
+template <typename _Tp> struct bitree_header;
+
+/**
+ * @brief the canonical structure of an ordered binary tree
+ * @details
+ *    l┌──────  _header  ───────┐r
+ *     │        p ↓↑ p          |
+ *     │         _root          │
+ *     │    l ↓↑ p,    r ↓↑ p   │
+ *     │    _left      _right   │
+ *     ↓      ..........        ↓
+ *   _min                     _max
+ * 
+ *   _header._left = _min (minium node)
+ *   _header._right = _max (maxium node)
+ *   _header._parent = _root
+ *   _root._parent = _header;
+ *   _min._left = _max._right = nullptr
+*/
+
+namespace __bitree__ {
+/**
+ * @brief find the least node (r) greater than %_x
+ * @details 4 cases :
+ *   1.   r  2.    r (_header)  3.  r (_header)  4. _x
+ *    | p     |  _root           |  _x (_root)    |    r
+ *    |  _x   |       _x         |                |
+*/
+template <typename _Tp> auto bitree_node_increase(bitree_node<_Tp>* _x)
+-> bitree_node<_Tp>*;
+template <typename _Tp> auto bitree_node_increase(const bitree_node<_Tp>* _x)
+-> const bitree_node<_Tp>*;
+/**
+ * @brief find the greatest node (r) less than %_x
+ * @details 4 cases :
+ *   1.   _x  2.   _x (_header) 3.  r    4.   r (_header)
+ *    | p      | _root           |    p   |   p (_root)
+ *    |   r    |  ...   r        | _x     | _x
+*/
+template <typename _Tp> auto bitree_node_decrease(bitree_node<_Tp>* _x)
+-> bitree_node<_Tp>*;
+template <typename _Tp> auto bitree_node_decrease(const bitree_node<_Tp>* _x)
+-> const bitree_node<_Tp>*;
+};
 
 template <typename _Tp> struct bitree_node : node<_Tp> {
     typedef node<_Tp> base;
@@ -15,6 +59,10 @@ template <typename _Tp> struct bitree_node : node<_Tp> {
     using reference = typename base::reference;
 
     using base::_pt;
+
+    self* _parent = nullptr;
+    self* _left = nullptr;
+    self* _right = nullptr;
 
     bitree_node() : base() {}
     bitree_node(const self& rhs) : base(rhs),
@@ -107,12 +155,87 @@ protected:
         }
         return (this->_left == nullptr || this->_left->check()) && (this->_right == nullptr || this->_right->check());
     }
-
-    self* _parent = nullptr;
-    self* _left = nullptr;
-    self* _right = nullptr;
 };
 
+
+template <typename _Tp> struct bitree_header {
+    typedef bitree_node<_Tp> _Node;
+    typedef typename _Node::value_type value_type;
+    bitree_node<_Tp> _header;
+    size_type _node_count;
+
+    bitree_header() {
+        reset();
+    }
+
+    void reset() {
+        this->_header._parent = nullptr;
+        this->_header._left = &this->_header;
+        this->_header._right = &this->_header;
+        this->_node_count = 0;
+    }
+};
+
+
+
+///  __bitree__ implement
+namespace __bitree__ {
+template <typename _Tp> auto bitree_node_increase(bitree_node<_Tp>* _x)
+-> bitree_node<_Tp>* {
+    if (_x->_right != nullptr) {  // for case 4
+        _x = _x->_right;
+        while (_x->_left != nullptr) {
+            _x = _x->_left;
+        }
+    }
+    else {
+        bitree_node<_Tp>* _y = _x->_parent;
+        while (_y != nullptr && _x == _y->_right) {
+            // for case 1, 2
+            // find the first node in %_x's ancestor nodes,
+            // whose r-child's power won't equal to the original %_x
+            _x = _y;
+            _y = _y->_parent;
+        }
+        if (_x->_right != _y) { // for case 3, used for bitree_header, which manage the nodes
+            _x = _y;
+        }
+    }
+    return _x;
+};
+template <typename _Tp> auto bitree_node_increase(const bitree_node<_Tp>* _x)
+-> const bitree_node<_Tp>* {
+    return bitree_node_increase(const_cast<bitree_node<_Tp>*>(_x));
+};
+template <typename _Tp> auto bitree_node_decrease(bitree_node<_Tp>* _x)
+-> bitree_node<_Tp>* {
+    if (_x->_parent->_parent == _x) {  // for case 2
+        _x = _x->_right;
+    }
+    else if (_x->_left != nullptr) {  // for case 1
+        bitree_node<_Tp>* _y = _x->_left;
+        while (_y->_right != nullptr) {
+            _y = _y->_right;
+        }
+        _x = _y;
+    }
+    else {
+        bitree_node<_Tp>* _y = _x->_parent;
+        while (_y != nullptr && _x == _y->_left) {  // for case 3, 4
+            // find the first node in %_x's ancestor nodes,
+            // whose l-child's power won't equal to the original %_x
+            _x = _y;
+            _y = _y->_parent;
+        }
+        _x = _y;
+    }
+    return _x;
+};
+template <typename _Tp> auto bitree_node_decrease(const bitree_node<_Tp>* _x)
+-> const bitree_node<_Tp>* {
+    return bitree_node_decrease(const_cast<bitree_node<_Tp>*>(_x));
+};
+};
 };
 
 #endif
