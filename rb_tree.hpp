@@ -2,6 +2,7 @@
 #define _RB_TREE_HPP_
 
 #include "tree_node.hpp"
+#include "type_traits.hpp"
 
 #include "memory.hpp"
 // #include <memory>
@@ -182,12 +183,40 @@ public:
     typedef const node_type const_node_type;
     typedef typename node_type::value_type value_type;
 
+    typedef rb_tree_iterator<value_type> iterator;
+    typedef rb_tree_const_iterator<value_type> const_iterator;
+
+    typedef asp::conditional_t<_UniqueKey, std::pair<iterator, bool>, iterator> ireturn_type;
+
     rb_tree_header<_Value> _m_impl;
     _ExtKey _m_extract_key;
+    _Comp _m_key_compare;
 
 
     static const value_type& _S_value(const_node_type* _x) { return _x->val(); }
     static const key_type& _S_key(const_node_type* _x) { return _ExtKey()(_x->val()); }
+
+public:
+    iterator begin() { return iterator(_M_leftmost()); }
+    const_iterator cbegin() const { return const_iterator(_M_leftmost()); }
+    iterator end() { return iterator(_M_rightmost()); }
+    const_iterator cend() const { return const_iterator(_M_rightmost()); }
+    size_type size() const { return _m_impl._node_count; }
+    bool empty() const { return _m_impl._node_count == 0; }
+
+    iterator find(const key_type& _k);
+    const_iterator find(const key_type& _k) const;
+    size_type count(const key_type& _k) const;
+    void clear();
+    ireturn_type insert(const value_type& _v);
+    size_type erase(const key_type& _k);
+
+    iterator lower_bound(const key_type& _k) { return _M_lower_bound(_M_begin(), _M_end(), _k); }
+    const_iterator lower_bound(const key_type& _k) const { return _M_lower_bound(_M_begin(), _M_end(), _k); }
+    iterator lower_bound(const key_type& _k) { return _M_upper_bound(_M_begin(), _M_end(), _k); }
+    const_iterator lower_bound(const key_type& _k) const { return _M_upper_bound(_M_begin(), _M_end(), _k); }
+    std::pair<iterator, iterator> equal_range(const key_type& _k);
+    std::pair<const_iterator, const_iterator> equal_range(const key_type& _k) const;
 
 protected:
     node_type* _M_root() { return _m_impl._header._parent; }
@@ -200,8 +229,164 @@ protected:
     const_node_type* _M_begin() const { return _m_impl._header._parent; }
     node_type* _M_end() { return &_m_impl._header; }
     const_node_type* _M_end() const { return &_m_impl._header; }
+
+    // return _x < _y;
+    bool _M_key_compare(const key_type& _x, const key_type& _y) const { return _m_key_compare(_x, _y); }
+    /**
+     * @brief find the greatest node (_i) less than _k in range [_x, _y), _S_key(_i) < _k
+     * @details not exists _i in [_x, _y), _S_key(_i) < _S_key(_j) < _k
+    */
+    iterator _M_lower_bound(node_type* _x, node_type* _y, const key_type& _k);
+    const_iterator _M_lower_bound(const node_type* _x, const node_type* _y, const key_type& _k) const;
+    /**
+     * @brief find the least node (_i) greater than _k in range [_x, _y), _k < _S_key(_i)
+     * @details not exists _i in [_x, _y), _k < _S_key(_j) < _S_key(_i)
+    */
+    iterator _M_upper_bound(node_type* _x, node_type* _y, const key_type& _k);
+    const_iterator _M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) const;
+
+    std::pair<iterator, bool> _M_insert(const value_type& _v, asp::true_type);
+    iterator _M_insert(const value_type& _v, asp::false_type);
+    iterator _M_insert_unique(const value_type& _v);
+    iterator _M_insert_multi(const value_type& _v);
+    size_type _M_erase(const key_type& _k, asp::true_type);
+    size_type _M_erase(const key_type& _k, asp::false_type);
 };
 
+
+/// rb_tree protected implement
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_lower_bound(node_type* _x, node_type* _y, const key_type& _k)
+-> iterator {
+    while (_x != nullptr) {
+        if (_M_key_compare(_S_key(_x), _k)) {
+            _x = _x->_right;
+        }
+        else {
+            _y = _x;
+            _x = _x->_left;
+        }
+    }
+    return iterator(_y);
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_lower_bound(const node_type* _x, const node_type* _y, const key_type& _k) const
+-> const_iterator {
+    while (_x != nullptr) {
+        if (_M_key_compare(_S_key(_x), _k)) {
+            _x = _x->_right;
+        }
+        else {
+            _y = _x;
+            _x = _x->_left;
+        }
+    }
+    return const_iterator(_y);
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_upper_bound(node_type* _x, node_type* _y, const key_type& _k)
+-> iterator {
+    while (_x != nullptr) {
+        if (_M_key_compare(_k, _S_key(_x))) {
+            _y = _x;
+            _x = _x->_left;
+        }
+        else {
+            _x = _x->_right;
+        }
+    }
+    return iterator(_y);
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) const
+-> const_iterator {
+    while (_x != nullptr) {
+        if (_M_key_compare(_k, _S_key(_x))) {
+            _y = _x;
+            _x = _x->_left;
+        }
+        else {
+            _x = _x->_right;
+        }
+    }
+    return const_iterator(_y);
+};
+
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_insert(const value_type& _v, asp::true_type) -> std::pair<iterator, bool> {
+
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_insert(const value_type& _v, asp::false_type) -> iterator {
+
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_insert_unique(const value_type& _v) -> iterator {
+
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_insert_multi(const value_type& _v) -> iterator {
+
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_erase(const key_type& _k, asp::true_type) -> size_type {
+
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_erase(const key_type& _k, asp::false_type) -> size_type {
+
+};
+
+
+/// rb_tree public implement
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::find(const key_type& _k)
+-> iterator {
+
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::find(const key_type& _k) const
+-> const_iterator {
+
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::count(const key_type& _k) const
+-> size_type {
+
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::clear()
+-> void {
+
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::insert(const value_type& _v)
+-> ireturn_type {
+    return this->_M_insert(_v, asp::bool_t<_UniqueKey>());
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::erase(const key_type& _k)
+-> size_type {
+    return this->_M_erase(_k, asp::bool_t<_UniqueKey>());
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::equal_range(const key_type& _k)
+-> std::pair<iterator, iterator> {
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::equal_range(const key_type& _k) const
+-> std::pair<const_iterator, const_iterator> {
+};
 };
 
 #endif
