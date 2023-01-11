@@ -17,6 +17,19 @@ template <typename _Value, typename _Alloc> struct rb_tree_alloc;
 template <typename _Tp> struct rb_tree_iterator;
 template <typename _Tp> struct rb_tree_const_iterator;
 
+/**
+ * @brief red black tree
+ * @details
+ *   here are 5 rules for rb_tree, which maintain the balance of rb_tree.
+ *     rule 1: the color of each node (inner node and leaf node) is red or black.
+ *     rule 2: the color of root node is black.
+ *     rule 3: we regard nullptr as black node.
+ *     rule 4: all red node's children must be black.
+ *     rule 5: all paths from a node to its descendants (until nullptr) contain the same number of black nodes.
+ * @def
+ *   black height: the number of black nodes in the path from the given node to its descendants (until nullptr)
+ *   relationship: indicates whether the child node is left or right child of its parent.
+*/
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> class rb_tree;
 
 template <typename _Tp> struct rb_tree_node : public bitree_node<_Tp> {
@@ -265,12 +278,180 @@ protected:
     // @brief find a suitable leaf node to insert.
     node_type* _M_insert_multi_position(const key_type& _k);
 
+    // @brief unique_insert
     std::pair<iterator, bool> _M_insert(const value_type& _v, asp::true_type);
+    // @brief multi_insert
     iterator _M_insert(const value_type& _v, asp::false_type);
-    iterator _M_insert_unique(node_type* _p, const value_type& _v);
-    iterator _M_insert_multi(node_type* _p, const value_type& _v);
     size_type _M_erase(const key_type& _k, asp::true_type);
     size_type _M_erase(const key_type& _k, asp::false_type);
+
+private:
+    /**
+     * @brief insert %_x as child of %_s in binary tree.
+    */
+    void _M_insert_rebalance(node_type* _p, node_type* _x);
+    /**
+     * @brief erase %_s in %_header's binary tree.
+     * @return the node should be deallocated.
+    */
+    node_type* _M_erase_rebalance(node_type* const _s);
+};
+
+/// rb_tree private implement
+/**
+ * @details
+ * - insertion
+ *   %_x->_color = _S_red, and insert.
+ * - rebalance
+ *   %_x->_color == _S_red
+ *   == %_x is the current node, of which color is always red. (no matter in insertion or iteration) ==
+ *   if %_x == %_root, just black it. (case 1)
+ *   elif %_x->_parent->_color == _S_black, just done. (case 2)
+ *   else (%_x->_parent->_color == _S_red), (case 3) divided into 2 cases: (by uncle node's color)
+ *     (infer that _xpp->_color == _S_black)
+ *     name uncle node as (_y), grandparent node as (_xpp)
+ *     case 3.1: _y->_color == _S_red
+ *       black _x->_parent and _y, red _xpp. and continue to iterate with _xpp as _x
+ *     case 3.2: _y->_color == _S_black (only appear during iteration)
+ *       case 3.2.1: relationship between (_x, _x->_parent) and (_x->_parent, _xpp) is different.
+ *         let _x point to its parent, and rotate _x, transform into the latter case (case 3.2.2).
+ *       case 3.2.2: relationship between (_x, _x->_parent) and (_x->_parent, _xpp) is identical.
+ *         reverse the color of _x->_parent and _xpp, and rotate _xpp.
+ * 
+ *   the details for case 3.1:
+ *     the color of _x and _x->_parent are all red, which breaks the 4th rule.
+ *     thus, we black _x->_parent and _y, red _xpp, in order to keep the black height in subtree (_xpp as root).
+ *     due to _xpp->_color is red, we may break the 4th rule (_xpp->_parent->_color may be red, too), so continue to iteration.
+ *   the details for case 3.2:
+ *     the current node's color is always red! the purpose of adjustment is to maintain the 4th rule.
+*/
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_insert_rebalance(node_type* _p, node_type* _x) -> void {
+    node_type& _header = _m_impl._header;
+    node_type*& _root = _header._parent;
+
+    // initialization
+    _x->_parent = _p;
+    _x->_left = nullptr;
+    _x->_right = nullptr;
+    _x->_color = _S_red;
+
+    // insert
+    bool _insert_left = (
+        _p == _M_end() ||
+        _M_key_compare(_S_key(_x), _S_key(_p))
+    );
+    if (_insert_left) {
+        _p->_left = _x;
+        if (_p == &_header) {
+            _header._parent = _x;
+            _header._right = _x;
+        }
+        else if (_p == _header._left) {
+            _header._left = _x;
+        }
+    }
+    else {
+        _p->_right = _x;
+        if (_p == _header._right) {
+            _header._right = _x;
+        }
+    }
+
+    // rebalance
+    while (_x != _root && _x->_parent->_color != _S_red) { // break in case 1 & 2
+        node_type* const _xpp = _x->_parent->_parent;
+        if (_x->_parent == _xpp->_left) {
+            node_type* const _y = _xpp->_right; // uncle node
+            if (_y != nullptr && _y->_color == _S_red) { // case 3.1
+                _x->_parent->_color = _S_black;
+                _y->_color = _S_black;
+                _xpp->_color = _S_red;
+                _x = _xpp;
+            }
+            else { // case 3.2
+                if (_x == _x->_parent->_right) { // case 3.2.1
+                    _x = _x->_parent;
+                    __bitree__::_S_left_rotate(_x, _root);
+                }
+                // case 3.2.2
+                _x->_parent->_color = _S_black;
+                _xpp->_color = _S_red;
+                __bitree__::_S_right_rotate(_xpp, _root);
+            }
+        }
+        else {
+            node_type* const _y = _xpp->_left; // uncle node
+            if (_y != nullptr && _y->_color == _S_red) { // case 3.1
+                _x->_parent->_color = _S_black;
+                _y->_color = _S_black;
+                _xpp->_color = _S_red;
+                _x = _xpp;
+            }
+            else { // case 3.2
+                if (_x == _x->_parent->_left) { // case 3.2.1
+                    _x = _x->_parent;
+                    __bitree__::_S_right_rotate(_x, _root);
+                }
+                // case 3.2.2
+                _x->_parent->_color = _S_black;
+                _xpp->_color = _S_red;
+                __bitree__::_S_left_rotate(_xpp, _root);
+            }
+        }
+    }
+    _root->_color = _S_black;
+};
+
+/**
+ * @details
+ * - deletion:
+ *   delete node as a normal binary tree.
+ *   to leaf node, delete directly.
+ *   to node with single child, delete and let its child take its place.
+ *   to node with two child, swap it and its successor node (with less than one child), and delete.
+ * - rebalance:
+*/
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_erase_rebalance(node_type* const _s) -> node_type* {
+    node_type& _header = _m_impl._header;
+    node_type*& _root = _header._parent;
+    node_type*& _leftmost = _header._left;
+    node_type*& _rightmost = _header._right;
+    node_type* _y = _s; // node to delete
+    node_type* _x = nullptr; // the child of %_y
+    node_type* _x_parent = nullptr; // the parent of %_x (not %_y)
+    if (_s->_left == nullptr) {
+        _x = _s->_right;
+    }
+    else {
+        if (_s->_right == nullptr) {
+            _x = _s->_left;
+        }
+        else {
+            _y = __bitree__::_S_bitree_node_increase(_s);
+            _x = _y->_right;
+        }
+    }
+    // %_x may be nullptr
+    if (_y != _s) { // swap _s and its successor node.
+        // _y must in the right subtree of _s, _y->_left == nullptr
+        _s->_left->_parent = _y;
+        _y->_left = _s->_left;
+        if (_y != _s->_right) { // 
+            // _x_parent = _y->_parent;
+            if (_x != nullptr) _x->_parent = _y->_parent;
+            _y->_parent->_left = _x; // %_y must be a left child.
+            _y->_right = _s->_right;
+            _s->_right->_parent = _y;
+        }
+        // else {
+        //     _x_parent = _y;
+        // }
+
+    }
 };
 
 
@@ -384,7 +565,9 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
 ::_M_insert(const value_type& _v, asp::true_type) -> std::pair<iterator, bool> {
     std::pair<node_type*, node_type*> _res = _M_insert_unique_position(_S_key(_v));
     if (_res.second != nullptr) {
-        return std::make_pair(_M_insert_unique(_res.second, _v), true);
+        node_type* _x = this->_M_allocate_node(_v);
+        _M_insert_rebalance(_res.second, _x);
+        return std::make_pair(iterator(_x), true);
     }
     return std::make_pair(iterator(_res.first), false);
 };
@@ -392,17 +575,10 @@ template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typ
 auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
 ::_M_insert(const value_type& _v, asp::false_type) -> iterator {
     node_type* _res = _M_insert_multi_position(_S_key(_v));
-    return _M_insert_multi(_res, _v);
-};
-template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
-auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
-::_M_insert_unique(node_type* _p, const value_type& _v) -> iterator {
-
-};
-template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
-auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
-::_M_insert_multi(node_type* _p, const value_type& _v) -> iterator {
-
+    node_type* _x = this->_M_allocate_node(_v);
+    _M_insert_rebalance(_res, _x);
+    ++_m_impl._node_count;
+    return iterator(_x);
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
