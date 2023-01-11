@@ -43,6 +43,16 @@ template <typename _Tp> struct rb_tree_node : public bitree_node<_Tp> {
         return _x;
     }
 
+    _Rb_tree_color _M_reverse_color() {
+        if (_color == _Rb_tree_color::_S_red) {
+            _color = _Rb_tree_color::_S_black;
+        }
+        else {
+            _color = _Rb_tree_color::_S_red;
+        }
+        return _color;
+    }
+
 };
 
 /**
@@ -137,10 +147,10 @@ template <typename _Tp> struct rb_tree_iterator {
     rb_tree_iterator(node_type* _x) : _ptr(_x) {}
     value_type& operator*() const { return _ptr->val(); }
     value_type* operator->() const { return _ptr->valptr(); }
-    self& operator++() { _ptr = __bitree__::bitree_node_increase(_ptr); return *this; }
-    self operator++(int) { self _ret = *this; _ptr = __bitree__::bitree_node_increase(_ptr); return _ret; }
-    self& operator--() { _ptr = __bitree__::bitree_node_decrease(_ptr); return *this; }
-    self operator--(int) { self _ret = *this; _ptr = __bitree__::bitree_node_decrease(_ptr); return _ret; }
+    self& operator++() { _ptr = __bitree__::_S_bitree_node_increase(_ptr); return *this; }
+    self operator++(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_increase(_ptr); return _ret; }
+    self& operator--() { _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return *this; }
+    self operator--(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return _ret; }
     friend bool operator==(const self& _x, const self& _y) { return _x._ptr == _y._ptr; }
     friend bool operator!=(const self& _x, const self& _y) { return _x._ptr != _y._ptr; }
 };
@@ -159,10 +169,10 @@ template <typename _Tp> struct rb_tree_const_iterator {
     const value_type& operator*() const { return _ptr->val(); }
     const value_type* operator->() const { return _ptr->valptr(); }
     iterator _const_cast() const { return iterator(const_cast<node_type*>(_ptr)); }
-    self& operator++() { _ptr = __bitree__::bitree_node_increase(_ptr); return *this; }
-    self operator++(int) { self _ret = *this; _ptr = __bitree__::bitree_node_increase(_ptr); return _ret; }
-    self& operator--() { _ptr = __bitree__::bitree_node_decrease(_ptr); return *this; }
-    self operator--(int) { self _ret = *this; _ptr = __bitree__::bitree_node_decrease(_ptr); return _ret; }
+    self& operator++() { _ptr = __bitree__::_S_bitree_node_increase(_ptr); return *this; }
+    self operator++(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_increase(_ptr); return _ret; }
+    self& operator--() { _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return *this; }
+    self operator--(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return _ret; }
     friend bool operator==(const self& _x, const self& _y) { return _x._ptr == _y._ptr; }
     friend bool operator!=(const self& _x, const self& _y) { return _x._ptr != _y._ptr; }
 };
@@ -195,6 +205,7 @@ public:
 
     static const value_type& _S_value(const_node_type* _x) { return _x->val(); }
     static const key_type& _S_key(const_node_type* _x) { return _ExtKey()(_x->val()); }
+    static const key_type& _S_key(const value_type& _v) { return _ExtKey()(_v); }
 
 public:
     iterator begin() { return iterator(_M_leftmost()); }
@@ -213,8 +224,8 @@ public:
 
     iterator lower_bound(const key_type& _k) { return _M_lower_bound(_M_begin(), _M_end(), _k); }
     const_iterator lower_bound(const key_type& _k) const { return _M_lower_bound(_M_begin(), _M_end(), _k); }
-    iterator lower_bound(const key_type& _k) { return _M_upper_bound(_M_begin(), _M_end(), _k); }
-    const_iterator lower_bound(const key_type& _k) const { return _M_upper_bound(_M_begin(), _M_end(), _k); }
+    iterator upper_bound(const key_type& _k) { return _M_upper_bound(_M_begin(), _M_end(), _k); }
+    const_iterator upper_bound(const key_type& _k) const { return _M_upper_bound(_M_begin(), _M_end(), _k); }
     std::pair<iterator, iterator> equal_range(const key_type& _k);
     std::pair<const_iterator, const_iterator> equal_range(const key_type& _k) const;
 
@@ -245,10 +256,19 @@ protected:
     iterator _M_upper_bound(node_type* _x, node_type* _y, const key_type& _k);
     const_iterator _M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) const;
 
+    /**
+     * @brief find a suitable leaf node to insert.
+     * @returns %second : inserted position. if nullptr, %first is the %_k position.
+     * @details iterative lookup for a suitble lead node to insert.
+    */
+    std::pair<node_type*, node_type*> _M_insert_unique_position(const key_type& _k);
+    // @brief find a suitable leaf node to insert.
+    node_type* _M_insert_multi_position(const key_type& _k);
+
     std::pair<iterator, bool> _M_insert(const value_type& _v, asp::true_type);
     iterator _M_insert(const value_type& _v, asp::false_type);
-    iterator _M_insert_unique(const value_type& _v);
-    iterator _M_insert_multi(const value_type& _v);
+    iterator _M_insert_unique(node_type* _p, const value_type& _v);
+    iterator _M_insert_multi(node_type* _p, const value_type& _v);
     size_type _M_erase(const key_type& _k, asp::true_type);
     size_type _M_erase(const key_type& _k, asp::false_type);
 };
@@ -318,22 +338,70 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
-::_M_insert(const value_type& _v, asp::true_type) -> std::pair<iterator, bool> {
+::_M_insert_unique_position(const key_type& _k) -> std::pair<node_type*, node_type*> {
+    typedef std::pair<node_type*, node_type*> _Res;
+    node_type* _x = _M_begin();
+    node_type* _y = _M_end();
+    bool _comp_res;
+    while (_x != nullptr) {
+        _y = _x;
+        _comp_res = _M_key_compare(_k, _S_key(_x));
+        _x = _comp_res ? _x->_left : _x->_right;
+    }
+    // _S_key(_y) is the closest to %_k
+    // the new node should be inserted to the left or right side of node(_y)
+    // depending on %_comp_res
+    // if %_comp_res, %_k < _S_key(_y); or %_k >= _S_key(_y)
+    iterator _j = iterator(_y);
+    if (_comp_res) {
+        if (_j == begin()) { // %_k not found
+            return _Res(_x, _y);
+        }
+        --_j; // point to the previous node of %_y (notice that %_k < _S_key(_y))
+    }
+    // if %_k not exist in tree, _S_key(*_j) must be less (not equal) than %_k
+    if (_M_key_compare(_S_key(_j._ptr), _k)) {
+        return _Res(_x, _y);
+    }
+    return _Res(_j._ptr, nullptr);
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_insert_multi_position(const key_type& _k) -> node_type* {
+    node_type* _x = _M_begin();
+    node_type* _y = _M_end();
+    bool _comp_res;
+    while (_x != nullptr) {
+        _y = _x;
+        _comp_res = _M_key_compare(_k, _S_key(_x));
+        _x = _comp_res ? _x->_left : _x->_right;
+    }
+    return _y;
+};
 
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_insert(const value_type& _v, asp::true_type) -> std::pair<iterator, bool> {
+    std::pair<node_type*, node_type*> _res = _M_insert_unique_position(_S_key(_v));
+    if (_res.second != nullptr) {
+        return std::make_pair(_M_insert_unique(_res.second, _v), true);
+    }
+    return std::make_pair(iterator(_res.first), false);
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
 ::_M_insert(const value_type& _v, asp::false_type) -> iterator {
+    node_type* _res = _M_insert_multi_position(_S_key(_v));
+    return _M_insert_multi(_res, _v);
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_insert_unique(node_type* _p, const value_type& _v) -> iterator {
 
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
-::_M_insert_unique(const value_type& _v) -> iterator {
-
-};
-template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
-auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
-::_M_insert_multi(const value_type& _v) -> iterator {
+::_M_insert_multi(node_type* _p, const value_type& _v) -> iterator {
 
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>

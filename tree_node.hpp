@@ -27,6 +27,8 @@ template <typename _Tp> struct bitree_header;
 */
 
 namespace __bitree__ {
+template <typename _Tp> void _S_left_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>*& _root);
+template <typename _Tp> void _S_right_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>*& _root);
 /**
  * @brief find the least node (r) greater than %_x
  * @details 4 cases :
@@ -34,9 +36,9 @@ namespace __bitree__ {
  *    | p     |  _root           |  _x (_root)    |    r
  *    |  _x   |       _x         |                |
 */
-template <typename _Tp> auto bitree_node_increase(bitree_node<_Tp>* _x)
+template <typename _Tp> auto _S_bitree_node_increase(bitree_node<_Tp>* _x)
 -> bitree_node<_Tp>*;
-template <typename _Tp> auto bitree_node_increase(const bitree_node<_Tp>* _x)
+template <typename _Tp> auto _S_bitree_node_increase(const bitree_node<_Tp>* _x)
 -> const bitree_node<_Tp>*;
 /**
  * @brief find the greatest node (r) less than %_x
@@ -45,9 +47,9 @@ template <typename _Tp> auto bitree_node_increase(const bitree_node<_Tp>* _x)
  *    | p      | _root           |    p   |   p (_root)
  *    |   r    |  ...   r        | _x     | _x
 */
-template <typename _Tp> auto bitree_node_decrease(bitree_node<_Tp>* _x)
+template <typename _Tp> auto _S_bitree_node_decrease(bitree_node<_Tp>* _x)
 -> bitree_node<_Tp>*;
-template <typename _Tp> auto bitree_node_decrease(const bitree_node<_Tp>* _x)
+template <typename _Tp> auto _S_bitree_node_decrease(const bitree_node<_Tp>* _x)
 -> const bitree_node<_Tp>*;
 };
 
@@ -180,7 +182,58 @@ template <typename _Tp> struct bitree_header {
 
 ///  __bitree__ implement
 namespace __bitree__ {
-template <typename _Tp> auto bitree_node_increase(bitree_node<_Tp>* _x)
+template <typename _Tp> void _S_left_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>*& _root) {
+    bitree_node<_Tp>* _right_child = _x->_right;
+    if (_right_child == nullptr) {
+        return ;
+    }
+    bitree_node<_Tp>* _this_parent = _x->_parent;
+    _right_child->_parent = _this_parent;
+    if (_this_parent != nullptr) {
+        if (_x == _root) {
+            _root = _right_child;
+        }
+        else if (_x == _this_parent->_left) {
+            _this_parent->_left = _right_child;
+        }
+        else {
+            _this_parent->_right = _right_child;
+        }
+    }
+    _x->_right = _right_child->_left;
+    if (_right_child->_left != nullptr) {
+        _right_child->_left->_parent = _x;
+    }
+    _right_child->_left = _x;
+    _x->_parent = _right_child;
+}
+template <typename _Tp> void _S_right_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>*& _root) {
+    bitree_node<_Tp>* _left_child = _x->_left;
+    if (_left_child == nullptr) {
+        return ;
+    }
+    bitree_node<_Tp>* _this_parent = _x->_parent;
+    _left_child->_parent = _this_parent;
+    if (_this_parent != nullptr) {
+        if (_x == _root) {
+            _root = _left_child;
+        }
+        else if (_x == _this_parent->_left) {
+            _this_parent->_left = _left_child;
+        }
+        else {
+            _this_parent->_right = _left_child;
+        }
+    }
+    _x->_left = _left_child->_right;
+    if (_left_child->_right != nullptr) {
+        _left_child->_right->_parent = _x;
+    }
+    _left_child->_right = _x;
+    _x->_parent = _left_child;
+}
+
+template <typename _Tp> auto _S_bitree_node_increase(bitree_node<_Tp>* _x)
 -> bitree_node<_Tp>* {
     if (_x->_right != nullptr) {  // for case 4
         _x = _x->_right;
@@ -203,11 +256,11 @@ template <typename _Tp> auto bitree_node_increase(bitree_node<_Tp>* _x)
     }
     return _x;
 };
-template <typename _Tp> auto bitree_node_increase(const bitree_node<_Tp>* _x)
+template <typename _Tp> auto _S_bitree_node_increase(const bitree_node<_Tp>* _x)
 -> const bitree_node<_Tp>* {
-    return bitree_node_increase(const_cast<bitree_node<_Tp>*>(_x));
+    return _S_bitree_node_increase(const_cast<bitree_node<_Tp>*>(_x));
 };
-template <typename _Tp> auto bitree_node_decrease(bitree_node<_Tp>* _x)
+template <typename _Tp> auto _S_bitree_node_decrease(bitree_node<_Tp>* _x)
 -> bitree_node<_Tp>* {
     if (_x->_parent->_parent == _x) {  // for case 2
         _x = _x->_right;
@@ -231,9 +284,9 @@ template <typename _Tp> auto bitree_node_decrease(bitree_node<_Tp>* _x)
     }
     return _x;
 };
-template <typename _Tp> auto bitree_node_decrease(const bitree_node<_Tp>* _x)
+template <typename _Tp> auto _S_bitree_node_decrease(const bitree_node<_Tp>* _x)
 -> const bitree_node<_Tp>* {
-    return bitree_node_decrease(const_cast<bitree_node<_Tp>*>(_x));
+    return _S_bitree_node_decrease(const_cast<bitree_node<_Tp>*>(_x));
 };
 };
 };
