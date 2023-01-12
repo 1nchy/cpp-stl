@@ -5,6 +5,7 @@
 
 #include "iterator.hpp"
 #include "type_traits.hpp"
+#include "associative_container_aux.hpp"
 
 #include "memory.hpp"
 // #include <memory>
@@ -44,7 +45,17 @@ template <typename _Tp> struct rb_tree_node : public bitree_node<_Tp> {
     using value_type = typename base::value_type;
     using pointer = typename base::pointer;
     using reference = typename base::reference;
+
+    rb_tree_node() : base() {}
+    rb_tree_node(const self& _s) : base(_s), _color(_s._color) {}
+    rb_tree_node(self&& _s) : base(_s), _color(_s._color) {}
+    rb_tree_node(const value_type& _v) : base(_v) {}
+    template <typename... _Args> rb_tree_node(_Args&&... _args) : base(std::forward<_Args>(_args)...) {}
+
     _Rb_tree_color _color;
+    self* _parent = nullptr;
+    self* _left = nullptr;
+    self* _right = nullptr;
 
     using base::left_rotate;
     using base::right_rotate;
@@ -123,6 +134,7 @@ template <typename _Tp> struct rb_tree_header : public bitree_header<_Tp> {
 template <typename _Value, typename _Alloc> struct rb_tree_alloc
 : public _Alloc {
     typedef rb_tree_node<_Value> node_type;
+    typedef typename node_type::base node_type_base;
 
     typedef _Alloc elt_allocator_type;
     typedef std::allocator_traits<elt_allocator_type> elt_alloc_traits;
@@ -158,6 +170,9 @@ template <typename _Tp> struct rb_tree_iterator {
     typedef asp::bidirectional_iterator_tag iterator_category;
     typedef rb_tree_node<_Tp> node_type;
     typedef typename node_type::value_type value_type;
+    typedef value_type* pointer;
+    typedef value_type& reference;
+    typedef asp::difference_type difference_type;
     typedef rb_tree_iterator<_Tp> self;
 
     node_type* _ptr = nullptr;
@@ -166,17 +181,21 @@ template <typename _Tp> struct rb_tree_iterator {
     rb_tree_iterator(node_type* _x) : _ptr(_x) {}
     value_type& operator*() const { return _ptr->val(); }
     value_type* operator->() const { return _ptr->valptr(); }
-    self& operator++() { _ptr = __bitree__::_S_bitree_node_increase(_ptr); return *this; }
-    self operator++(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_increase(_ptr); return _ret; }
-    self& operator--() { _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return *this; }
-    self operator--(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return _ret; }
+    self& operator++() { __bitree__::_S_bitree_node_increase_ref(_ptr); return *this; }
+    self operator++(int) { self _ret = *this; __bitree__::_S_bitree_node_increase_ref(_ptr); return _ret; }
+    self& operator--() { __bitree__::_S_bitree_node_decrease_ref(_ptr); return *this; }
+    self operator--(int) { self _ret = *this; __bitree__::_S_bitree_node_decrease_ref(_ptr); return _ret; }
     friend bool operator==(const self& _x, const self& _y) { return _x._ptr == _y._ptr; }
     friend bool operator!=(const self& _x, const self& _y) { return _x._ptr != _y._ptr; }
+    template <typename _T> friend std::ostream& operator<<(std::ostream& os, const rb_tree_iterator<_T>& _r);
 };
 template <typename _Tp> struct rb_tree_const_iterator {
     typedef asp::bidirectional_iterator_tag iterator_category;
     typedef rb_tree_node<_Tp> node_type;
     typedef typename node_type::value_type value_type;
+    typedef value_type* pointer;
+    typedef value_type& reference;
+    typedef asp::difference_type difference_type;
     typedef rb_tree_const_iterator<_Tp> self;
     typedef rb_tree_iterator<_Tp> iterator;
 
@@ -189,12 +208,27 @@ template <typename _Tp> struct rb_tree_const_iterator {
     const value_type& operator*() const { return _ptr->val(); }
     const value_type* operator->() const { return _ptr->valptr(); }
     iterator _const_cast() const { return iterator(const_cast<node_type*>(_ptr)); }
-    self& operator++() { _ptr = __bitree__::_S_bitree_node_increase(_ptr); return *this; }
-    self operator++(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_increase(_ptr); return _ret; }
-    self& operator--() { _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return *this; }
-    self operator--(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return _ret; }
+    self& operator++() {
+        node_type* _tmp = const_cast<node_type*>(_ptr);
+        __bitree__::_S_bitree_node_increase_ref(_tmp);
+        _ptr = _tmp; return *this;
+    }
+    self operator++(int) {
+        self _ret = *this; node_type* _tmp = const_cast<node_type*>(_ptr);
+        __bitree__::_S_bitree_node_increase_ref(_tmp); _ptr = _tmp; return _ret;
+    }
+    self& operator--() {
+        node_type* _tmp = const_cast<node_type*>(_ptr);
+        __bitree__::_S_bitree_node_decrease_ref(_tmp);
+        _ptr = _tmp; return *this;
+    }
+    self operator--(int) {
+        self _ret = *this; node_type* _tmp = const_cast<node_type*>(_ptr);
+        __bitree__::_S_bitree_node_decrease_ref(_tmp); _ptr = _tmp; return _ret;
+    }
     friend bool operator==(const self& _x, const self& _y) { return _x._ptr == _y._ptr; }
     friend bool operator!=(const self& _x, const self& _y) { return _x._ptr != _y._ptr; }
+    template <typename _T> friend std::ostream& operator<<(std::ostream& os, const rb_tree_const_iterator<_T>& _r);
 };
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp = std::less<_Key>, typename _Alloc = std::allocator<_Value>>
@@ -211,12 +245,19 @@ public:
     typedef _Key key_type;
     typedef typename base::node_type node_type;
     typedef const node_type const_node_type;
+    typedef typename base::node_type_base node_type_base;
+    typedef const node_type_base const_node_type_base;
+    
     typedef typename node_type::value_type value_type;
+    typedef typename asso_container::type_traits<value_type>::mapped_type mapped_type;
 
     typedef rb_tree_iterator<value_type> iterator;
     typedef rb_tree_const_iterator<value_type> const_iterator;
 
     typedef asp::conditional_t<_UniqueKey, std::pair<iterator, bool>, iterator> ireturn_type;
+    typedef asp::conditional_t<_UniqueKey, _select_1x, asso_container::bool_return<true>> _InsertStatus;
+    typedef asp::conditional_t<_UniqueKey, _select_0x, _select_self> _ExtractIterator;
+    typedef typename asso_container::type_traits<value_type>::ext_value _ExtractValue;
 
     rb_tree_header<_Value> _m_impl;
     _ExtKey _m_extract_key;
@@ -224,8 +265,11 @@ public:
 
 
     static const value_type& _S_value(const_node_type* _x) { return _x->val(); }
-    static const key_type& _S_key(const_node_type* _x) { return _ExtKey()(_x->val()); }
-    static const key_type& _S_key(const value_type& _v) { return _ExtKey()(_v); }
+    static key_type _S_key(const_node_type* _x) { return _ExtKey()(_x->val()); }
+    static key_type _S_key(const value_type& _v) { return _ExtKey()(_v); }
+
+    template <typename _K, typename _V, typename _EK, bool _UK, typename _C, typename _A>
+     friend std::ostream& operator<<(std::ostream& os, const rb_tree<_K, _V, _EK, _UK, _C, _A>& _h);
 
 public:
     iterator begin() { return iterator(_M_leftmost()); }
@@ -340,6 +384,8 @@ private:
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
 ::_M_insert_rebalance(node_type* _p, node_type* _x) -> void {
+    // node_type& _header = _m_impl._header;
+    // node_type*& _root = _header._parent;
     node_type& _header = _m_impl._header;
     node_type*& _root = _header._parent;
 
@@ -385,12 +431,12 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
             else { // case 3.2
                 if (_x == _x->_parent->_right) { // case 3.2.1
                     _x = _x->_parent;
-                    __bitree__::_S_left_rotate(_x, _root);
+                    __bitree__::_S_left_rotate(_x, &_m_impl._header);
                 }
                 // case 3.2.2
                 _x->_parent->_color = _S_black;
                 _xpp->_color = _S_red;
-                __bitree__::_S_right_rotate(_xpp, _root);
+                __bitree__::_S_right_rotate(_xpp, &_m_impl._header);
             }
         }
         else {
@@ -404,12 +450,12 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
             else { // case 3.2
                 if (_x == _x->_parent->_left) { // case 3.2.1
                     _x = _x->_parent;
-                    __bitree__::_S_right_rotate(_x, _root);
+                    __bitree__::_S_right_rotate(_x, &_m_impl._header);
                 }
                 // case 3.2.2
                 _x->_parent->_color = _S_black;
                 _xpp->_color = _S_red;
-                __bitree__::_S_left_rotate(_xpp, _root);
+                __bitree__::_S_left_rotate(_xpp, &_m_impl._header);
             }
         }
     }
@@ -463,7 +509,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
             _x = _s->_left;
         }
         else {
-            _y = __bitree__::_S_bitree_node_increase(_s); // successor node of %_s
+            __bitree__::_S_bitree_node_increase_ref(_y); // successor node of %_s
             _x = _y->_right;
         }
     }
@@ -556,7 +602,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
                 if (_w->_color == _S_red) { // case 4.1
                     _w->_color = _S_black;
                     _x_parent->_color = _S_red;
-                    __bitree__::_S_left_rotate(_x_parent, _root);
+                    __bitree__::_S_left_rotate(_x_parent, &_m_impl._header);
                     _w = _x_parent->_right; // new sibling node of %_x
                 }
                 // %_w->_color == _S_black
@@ -569,7 +615,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
                     if (__details__::_S_as_black_node(_w->_right)) {
                         _w->_left->_color = _S_black;
                         _w->_color = _S_red;
-                        __bitree__::_S_right_rotate(_w, _root);
+                        __bitree__::_S_right_rotate(_w, &_m_impl._header);
                         _w = _x_parent->_right;
                     }
                     _w->_color = _x_parent->_color;
@@ -577,7 +623,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
                     if (_w->_right != nullptr) {
                         _w->_right->_color = _S_black;
                     }
-                    __bitree__::_S_left_rotate(_x_parent, _root);
+                    __bitree__::_S_left_rotate(_x_parent, &_m_impl._header);
                     break;
                 }
             }
@@ -586,7 +632,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
                 if (_w->_color == _S_red) {
                     _w->_color = _S_black;
                     _x_parent->_color = _S_black;
-                    __bitree__::_S_right_rotate(_x_parent, _root);
+                    __bitree__::_S_right_rotate(_x_parent, &_m_impl._header);
                     _w = _x_parent->_left;
                 }
                 if (__details__::_S_as_black_node(_w->_right) && __details__::_S_as_black_node(_w->_left)) {
@@ -598,7 +644,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
                     if (__details__::_S_as_black_node(_w->_left)) {
                         _w->_right->_color = _S_black;
                         _w->_color = _S_red;
-                        __bitree__::_S_left_rotate(_w, _root);
+                        __bitree__::_S_left_rotate(_w, &_m_impl._header);
                         _w = _x_parent->_left;
                     }
                     _w->_color = _x_parent->_color;
@@ -606,7 +652,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
                     if (_w->_left != nullptr) {
                         _w->_left->_color = _S_black;
                     }
-                    __bitree__::_S_right_rotate(_x_parent, _root);
+                    __bitree__::_S_right_rotate(_x_parent, &_m_impl._header);
                     break;
                 }
             }
@@ -861,6 +907,28 @@ rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::equal_range(const key
         }
     }
     return std::make_pair(const_iterator(_y), const_iterator(_y));
+};
+
+/// output implement
+template <typename _K, typename _V, typename _EK, bool _UK, typename _C, typename _A>
+std::ostream& operator<<(std::ostream& os, const rb_tree<_K, _V, _EK, _UK, _C, _A>& _r) {
+    os << '[';
+    for (auto p = _r.cbegin(); p != _r.cend();) {
+        os << p;
+        if (++p != _r.cend()) {
+            os << ", ";
+        }
+    }
+    os << ']';
+    return os;
+};
+template <typename _T> std::ostream& operator<<(std::ostream& os, const rb_tree_iterator<_T>& _r) {
+    os << obj_string::_M_obj_2_string(*_r);
+    return os;
+};
+template <typename _T> std::ostream& operator<<(std::ostream& os, const rb_tree_const_iterator<_T>& _r) {
+    os << obj_string::_M_obj_2_string(*_r);
+    return os;
 };
 
 
