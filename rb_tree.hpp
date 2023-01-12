@@ -292,6 +292,9 @@ protected:
     size_type _M_erase(const_iterator _p);
     size_type _M_erase(const_iterator _first, const_iterator _last);
 
+    // erase subtree directly, without rebalancing
+    void _M_erase_subtree(node_type* _s);
+
 private:
     /**
      * @brief insert %_x as child of %_s in binary tree.
@@ -761,7 +764,16 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
     }
     return _ret;
 };
-
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_erase_subtree(node_type* _s) -> void {
+    while (_s != nullptr) {
+        _M_erase_subtree(_s->_right);
+        node_type* _p = _s->_left;
+        this->_M_deallocate_node(_s);
+        _s = _p;
+    }
+};
 
 /// rb_tree public implement
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
@@ -782,7 +794,8 @@ rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::count(const key_type&
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::clear()
 -> void {
-
+    _M_erase_subtree(_M_begin());
+    _m_impl.reset();
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::insert(const value_type& _v)
