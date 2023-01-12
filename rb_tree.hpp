@@ -182,6 +182,7 @@ template <typename _Tp> struct rb_tree_const_iterator {
 
     rb_tree_const_iterator() = default;
     rb_tree_const_iterator(const node_type* _x) : _ptr(_x) {}
+    rb_tree_const_iterator(const iterator& _i) : _ptr(_i._ptr) {}
     
     const value_type& operator*() const { return _ptr->val(); }
     const value_type* operator->() const { return _ptr->valptr(); }
@@ -261,13 +262,15 @@ protected:
     // return _x < _y;
     bool _M_key_compare(const key_type& _x, const key_type& _y) const { return _m_key_compare(_x, _y); }
     /**
-     * @brief find the greatest node (_i) less than _k in range [_x, _y), _S_key(_i) < _k
+     * @brief find the greatest node (_i) less than _k in _x subtree. _S_key(_i) < _k
+     * @return return _y if all nodes are less than _k
      * @details not exists _i in [_x, _y), _S_key(_i) < _S_key(_j) < _k
     */
     iterator _M_lower_bound(node_type* _x, node_type* _y, const key_type& _k);
     const_iterator _M_lower_bound(const node_type* _x, const node_type* _y, const key_type& _k) const;
     /**
-     * @brief find the least node (_i) greater than _k in range [_x, _y), _k < _S_key(_i)
+     * @brief find the least node (_i) greater than _k in range _x subtree, _k < _S_key(_i)
+     * @return return _y if all nodes are greater than _k
      * @details not exists _i in [_x, _y), _k < _S_key(_j) < _S_key(_i)
     */
     iterator _M_upper_bound(node_type* _x, node_type* _y, const key_type& _k);
@@ -286,8 +289,8 @@ protected:
     std::pair<iterator, bool> _M_insert(const value_type& _v, asp::true_type);
     // @brief multi_insert
     iterator _M_insert(const value_type& _v, asp::false_type);
-    size_type _M_erase(const key_type& _k, asp::true_type);
-    size_type _M_erase(const key_type& _k, asp::false_type);
+    size_type _M_erase(const_iterator _p);
+    size_type _M_erase(const_iterator _first, const_iterator _last);
 
 private:
     /**
@@ -722,6 +725,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
     if (_res.second != nullptr) {
         node_type* _x = this->_M_allocate_node(_v);
         _M_insert_rebalance(_res.second, _x);
+        ++_m_impl._node_count;
         return std::make_pair(iterator(_x), true);
     }
     return std::make_pair(iterator(_res.first), false);
@@ -737,13 +741,25 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
-::_M_erase(const key_type& _k, asp::true_type) -> size_type {
-
+::_M_erase(const_iterator _p) -> size_type {
+    node_type* _s = _M_erase_rebalance(const_cast<node_type*>(_p._ptr));
+    this->_M_deallocate_node(_s);
+    --_m_impl._node_count;
+    return 1;
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
-::_M_erase(const key_type& _k, asp::false_type) -> size_type {
-
+::_M_erase(const_iterator _first, const_iterator _last) -> size_type {
+    size_type _ret = 0;
+    if (_first == cbegin() && _last == cend()) {
+        _ret = size();
+        clear();
+    }
+    while (_first != _last) {
+        _M_erase(_first++);
+        ++_ret;
+    }
+    return _ret;
 };
 
 
@@ -776,15 +792,56 @@ rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::insert(const value_ty
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::erase(const key_type& _k)
 -> size_type {
-    return this->_M_erase(_k, asp::bool_t<_UniqueKey>());
+    std::pair<const_iterator, const_iterator> _p = equal_range(_k);
+    return this->_M_erase(_p.first, _p.second);
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::equal_range(const key_type& _k)
 -> std::pair<iterator, iterator> {
+    node_type* _x = _M_begin();
+    node_type* _y = _M_end();
+    while (_x != nullptr) {
+        if (_M_key_compare(_S_key(_x), _k)) {
+            _x = _x->_right;
+        }
+        else if (_M_key_compare(_k, _S_key(_x))) {
+            _y = _x, _x = _x->_left;
+        }
+        else { // _S_key(_x) == _k
+            node_type* _xu = _x;
+            node_type* _yu = _y;
+            _y = _x, _x = _x->_left;
+            _xu = _xu->_right;
+            return std::make_pair(
+                iterator(_M_lower_bound(_x, _y, _k)),
+                iterator(_M_upper_bound(_xu, _yu, _k)));
+        }
+    }
+    return std::make_pair(iterator(_y), iterator(_y));
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::equal_range(const key_type& _k) const
 -> std::pair<const_iterator, const_iterator> {
+    const node_type* _x = _M_begin();
+    const node_type* _y = _M_end();
+    while (_x != nullptr) {
+        if (_M_key_compare(_S_key(_x), _k)) {
+            _x = _x->_right;
+        }
+        else if (_M_key_compare(_k, _S_key(_x))) {
+            _y = _x, _x = _x->_left;
+        }
+        else { // _S_key(_x) == _k
+            const node_type* _xu = _x;
+            const node_type* _yu = _y;
+            _y = _x, _x = _x->_left;
+            _xu = _xu->_right;
+            return std::make_pair(
+                const_iterator(_M_lower_bound(_x, _y, _k)),
+                const_iterator(_M_upper_bound(_xu, _yu, _k)));
+        }
+    }
+    return std::make_pair(const_iterator(_y), const_iterator(_y));
 };
 
 
