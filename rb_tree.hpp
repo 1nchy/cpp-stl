@@ -32,6 +32,10 @@ template <typename _Tp> struct rb_tree_const_iterator;
 */
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> class rb_tree;
 
+namespace __details__ {
+    template <typename _Tp> bool _S_as_black_node(const rb_tree_node<_Tp>* _x);
+};
+
 template <typename _Tp> struct rb_tree_node : public bitree_node<_Tp> {
     typedef bitree_node<_Tp> base;
     typedef rb_tree_node<_Tp> self;
@@ -305,9 +309,9 @@ private:
  * - rebalance
  *   %_x->_color == _S_red
  *   == %_x is the current node, of which color is always red. (no matter in insertion or iteration) ==
- *   if %_x == %_root, just black it. (case 1)
- *   elif %_x->_parent->_color == _S_black, just done. (case 2)
- *   else (%_x->_parent->_color == _S_red), (case 3) divided into 2 cases: (by uncle node's color)
+ *   case 1: %_x == %_root, just black it.
+ *   case 2: %_x->_parent->_color == _S_black, just done.
+ *   case 3: (%_x->_parent->_color == _S_red), divided into 2 cases: (by uncle node's color)
  *     (infer that _xpp->_color == _S_black)
  *     name uncle node as (_y), grandparent node as (_xpp)
  *     case 3.1: _y->_color == _S_red
@@ -412,6 +416,26 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
  *   to node with single child, delete and let its child take its place.
  *   to node with two child, swap it and its successor node (with less than one child), and delete.
  * - rebalance:
+ *   case 1: %_y->_color == _S_red, done.
+ *   // iteration cases
+ *   case 2: %_x->_color == _S_red, black it and done.
+ *   case 3: %_x == _root, done.
+ *   case 4: (%_x != _root, %_x->_color != _S_red), divided into 4 cases:
+ *     // black height of _x subtree is less than its sibling node.
+ *     // suppose that %_x == _x_parent->_left, vice versa
+ *     // name %_x 's sibling node as %_w
+ *     case 4.1: %_w->_color == _S_red.
+ *       reverse the color of %_w & %_x_parent, and left rotate the %_x_parent.
+ *       (transform into case 4.2, 4.3, 4.4)
+ *     case 4.2: %_w->_left->_color == _S_black, %_w->_right->_color == _S_black.
+ *       red %_w, and iterate with _x_parent as _x
+ *     case 4.3: %_w->_left->_color == _S_red, %_w->_right->_color == _S_black.
+ *       red %_w, black %_w->_left, and right rotate %_w
+ *       (transform into case 4.4)
+ *     case 4.4: %_w->_left->_color == _S_black, %_w->_right->_color == _S_red.
+ *       %_w->_color = _x_parent->_color, red %_w->_right, black %_x_parent
+ *       and left rotate %_x_parent.
+ *       notice that, the black height of _x_parent subtree hasn't changed, so break directly.
 */
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
@@ -431,27 +455,158 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
             _x = _s->_left;
         }
         else {
-            _y = __bitree__::_S_bitree_node_increase(_s);
+            _y = __bitree__::_S_bitree_node_increase(_s); // successor node of %_s
             _x = _y->_right;
         }
     }
     // %_x may be nullptr
-    if (_y != _s) { // swap _s and its successor node.
-        // _y must in the right subtree of _s, _y->_left == nullptr
+
+    // relink and separate out %_s
+    if (_y != _s) { // swap _s and its successor node. replace _s with _y, and _y = _s
+        // cope _s->_left. // _y must in the right subtree of _s, _y->_left == nullptr
         _s->_left->_parent = _y;
         _y->_left = _s->_left;
-        if (_y != _s->_right) { // 
-            // _x_parent = _y->_parent;
+
+        if (_y != _s->_right) { // cope _s->_right
+            _x_parent = _y->_parent;
             if (_x != nullptr) _x->_parent = _y->_parent;
             _y->_parent->_left = _x; // %_y must be a left child.
             _y->_right = _s->_right;
             _s->_right->_parent = _y;
         }
-        // else {
-        //     _x_parent = _y;
-        // }
+        else {
+            _x_parent = _y;
+        }
 
+        // cope _s->_parent
+        if (_s == _root) {
+            _root = _y;
+        }
+        else if (_s->_parent->_left == _s) {
+            _s->_parent->_left = _y;
+        }
+        else {
+            _s->_parent->_right = _y;
+        }
+        _y->_parent = _s->_parent;
+
+        std::swap(_y->_color, _s->_color);
+        _y = _s;
     }
+    else { // _y == _s, _s owns less than one child.
+        _x_parent = _s->_parent;
+        if (_x != nullptr) {
+            _x->_parent = _s->_parent;
+        }
+
+        // cope %_s->_parent
+        if (_s == _root) {
+            _root = _x;
+        }
+        else {
+            if (_s->_parent->_left = _s) {
+                _s->_parent->_left = _x;
+            }
+            else {
+                _s->_parent->_right = _x;
+            }
+        }
+
+        // update left/right most
+        if (_leftmost == _s) {
+            if (_s->_right == nullptr) {
+                _leftmost = _s->_parent;
+            }
+            else {
+                _leftmost = __bitree__::_S_minimum(_x);
+            }
+        }
+        if (_rightmost == _s) {
+            if (_s->_left == nullptr) {
+                _rightmost = _s->_parent;
+            }
+            else {
+                _rightmost = __bitree__::_S_maximum(_x);
+            }
+        }
+    }
+
+/**
+ * @details
+ *   %_y now point to the node to delete, which has been separated out.
+ *   no matter with %_y and %_s in rebalance.
+ *   %_x was the child of %_y
+ *   if (_x) _x->_parent == _x_parent;
+*/
+
+    // rebalance
+    if (_y->_color != _S_red) {
+        // because %_y->_color == _S_black, so the sibling node of %_x can't be nullptr
+        while (_x != _root && (_x == nullptr || _x->_color == _S_black)) {
+            if (_x == _x_parent->_left) {
+                node_type* _w = _x_parent->_right; // the sibling node of _x
+                if (_w->_color == _S_red) { // case 4.1
+                    _w->_color = _S_black;
+                    _x_parent->_color = _S_red;
+                    __bitree__::_S_left_rotate(_x_parent, _root);
+                    _w = _x_parent->_right; // new sibling node of %_x
+                }
+                // %_w->_color == _S_black
+                if (__details__::_S_as_black_node(_w->_left) && __details__::_S_as_black_node(_w->_right)) { // case 4.2
+                    _w->_color = _S_red;
+                    _x = _x_parent;
+                    _x_parent = _x_parent->_parent;
+                }
+                else {
+                    if (__details__::_S_as_black_node(_w->_right)) {
+                        _w->_left->_color = _S_black;
+                        _w->_color = _S_red;
+                        __bitree__::_S_right_rotate(_w, _root);
+                        _w = _x_parent->_right;
+                    }
+                    _w->_color = _x_parent->_color;
+                    _x_parent->_color = _S_black;
+                    if (_w->_right != nullptr) {
+                        _w->_right->_color = _S_black;
+                    }
+                    __bitree__::_S_left_rotate(_x_parent, _root);
+                    break;
+                }
+            }
+            else { // same as above
+                node_type* _w = _x_parent->_left;
+                if (_w->_color == _S_red) {
+                    _w->_color = _S_black;
+                    _x_parent->_color = _S_black;
+                    __bitree__::_S_right_rotate(_x_parent, _root);
+                    _w = _x_parent->_left;
+                }
+                if (__details__::_S_as_black_node(_w->_right) && __details__::_S_as_black_node(_w->_left)) {
+                    _w->_color = _S_red;
+                    _x = _x_parent;
+                    _x_parent = _x_parent->_parent;
+                }
+                else {
+                    if (__details__::_S_as_black_node(_w->_left)) {
+                        _w->_right->_color = _S_black;
+                        _w->_color = _S_red;
+                        __bitree__::_S_left_rotate(_w, _root);
+                        _w = _x_parent->_left;
+                    }
+                    _w->_color = _x_parent->_color;
+                    _x_parent->_color = _S_black;
+                    if (_w->_left != nullptr) {
+                        _w->_left->_color = _S_black;
+                    }
+                    __bitree__::_S_right_rotate(_x_parent, _root);
+                    break;
+                }
+            }
+        }
+        if (_x != nullptr) _x->_color = _S_black;
+    }
+
+    return _y;
 };
 
 
@@ -631,6 +786,15 @@ template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typ
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::equal_range(const key_type& _k) const
 -> std::pair<const_iterator, const_iterator> {
 };
+
+
+/// __details__ implement
+namespace __details__ {
+    template <typename _Tp> bool _S_as_black_node(const rb_tree_node<_Tp>* _x) {
+        return _x == nullptr || _x->_color == _S_black;
+    };
+};
+
 };
 
 #endif
