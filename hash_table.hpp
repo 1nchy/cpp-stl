@@ -5,6 +5,8 @@
 #include "hash_table_policy.hpp"
 #include "type_traits.hpp"
 
+#include "associative_container_aux.hpp"
+
 #include "basic_io.hpp"
 
 #define _HASH_TABLE_CHECK_
@@ -173,23 +175,6 @@ template <typename _Key, typename _Value, typename _ExtractKey, bool _UniqueKey,
     }
 };
 
-namespace __details__ {
-template <typename _Tp> struct pair_tail;
-template <typename _Tp> struct pair_tail {
-    typedef _Tp type;
-};
-template <typename _Head, typename _Tail> struct pair_tail<std::pair<_Head, _Tail>> {
-    typedef _Tail type;
-};
-template <typename _Tp> using pair_tail_t = typename pair_tail<_Tp>::type;
-
-template <bool _b> struct bool_return {
-    template <typename _Tp> bool operator()(_Tp&& _x) const {
-        return _b;
-    };
-};
-};
-
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Hash, typename _Alloc>
  class hash_table : public hash_table_alloc<_Value, _Alloc> {
 public:
@@ -215,12 +200,10 @@ public:
     typedef hash_const_iterator<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc> const_iterator;
 
     typedef asp::conditional_t<_UniqueKey, std::pair<iterator, bool>, iterator> ireturn_type;
-    typedef asp::conditional_t<_UniqueKey, _select_1x, __details__::bool_return<true>> _InsertStatus;
+    typedef asp::conditional_t<_UniqueKey, _select_1x, asso_container::bool_return<true>> _InsertStatus;
     typedef asp::conditional_t<_UniqueKey, _select_0x, _select_self> _ExtractIterator;
-    typedef asp::conditional_t<asp::is_same<key_type, value_type>::value, true_type, false_type> kv_self;
-    typedef asp::conditional_t<kv_self::value, _select_self, _select_1x> _ExtractValue;
-    typedef asp::__details__::pair_tail_t<value_type> mapped_type;
-    // typedef asp::conditional_t<kv_self::value, value_type, typename std::tuple_element<1, value_type>::type> mapped_type;
+    typedef typename asso_container::type_traits<value_type>::ext_value _ExtractValue;
+    typedef typename asso_container::type_traits<value_type>::mapped_type mapped_type;
 
     typedef rehash_policy::bucket_index bucket_index;
     static const bucket_index _s_illegal_index;
