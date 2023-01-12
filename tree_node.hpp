@@ -27,6 +27,13 @@ template <typename _Tp> struct bitree_header;
 */
 
 namespace __bitree__ {
+// maximum node in subtree rooted at %_x
+template <typename _Tp> bitree_node<_Tp>* _S_maximum(bitree_node<_Tp>* _x);
+template <typename _Tp> const bitree_node<_Tp>* _S_maximum(const bitree_node<_Tp>* _x);
+// minimum node in subtree rooted at %_x
+template <typename _Tp> bitree_node<_Tp>* _S_minimum(bitree_node<_Tp>* _x);
+template <typename _Tp> const bitree_node<_Tp>* _S_minimum(const bitree_node<_Tp>* _x);
+
 template <typename _Tp> void _S_left_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>*& _root);
 template <typename _Tp> void _S_right_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>*& _root);
 /**
@@ -182,6 +189,31 @@ template <typename _Tp> struct bitree_header {
 
 ///  __bitree__ implement
 namespace __bitree__ {
+template <typename _Tp> bitree_node<_Tp>* _S_maximum(bitree_node<_Tp>* _x) {
+    while (_x->_left != nullptr) {
+        _x = _x->_left;
+    }
+    return _x;
+};
+template <typename _Tp> const bitree_node<_Tp>* _S_maximum(const bitree_node<_Tp>* _x) {
+    while (_x->_left != nullptr) {
+        _x = _x->_left;
+    }
+    return _x;
+};
+template <typename _Tp> bitree_node<_Tp>* _S_minimum(bitree_node<_Tp>* _x) {
+    while (_x->_right != nullptr) {
+        _x = _x->_right;
+    }
+    return _x;
+};
+template <typename _Tp> const bitree_node<_Tp>* _S_minimum(const bitree_node<_Tp>* _x) {
+    while (_x->_right != nullptr) {
+        _x = _x->_right;
+    }
+    return _x;
+};
+
 template <typename _Tp> void _S_left_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>*& _root) {
     bitree_node<_Tp>* _right_child = _x->_right;
     if (_right_child == nullptr) {
