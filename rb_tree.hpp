@@ -2,6 +2,8 @@
 #define _RB_TREE_HPP_
 
 #include "tree_node.hpp"
+
+#include "iterator.hpp"
 #include "type_traits.hpp"
 
 #include "memory.hpp"
@@ -262,16 +264,16 @@ protected:
     // return _x < _y;
     bool _M_key_compare(const key_type& _x, const key_type& _y) const { return _m_key_compare(_x, _y); }
     /**
-     * @brief find the greatest node (_i) less than _k in _x subtree. _S_key(_i) < _k
-     * @return return _y if all nodes are less than _k
-     * @details not exists _i in [_x, _y), _S_key(_i) < _S_key(_j) < _k
+     * @brief find the greatest node (_i) \le than _k in _x subtree. _S_key(_i) <= _k
+     * @return return _y if all nodes are \le than _k
+     * @details not exists _j in subtree(_x), _S_key(_i) < _S_key(_j) <= _k
     */
     iterator _M_lower_bound(node_type* _x, node_type* _y, const key_type& _k);
     const_iterator _M_lower_bound(const node_type* _x, const node_type* _y, const key_type& _k) const;
     /**
-     * @brief find the least node (_i) greater than _k in range _x subtree, _k < _S_key(_i)
-     * @return return _y if all nodes are greater than _k
-     * @details not exists _i in [_x, _y), _k < _S_key(_j) < _S_key(_i)
+     * @brief find the least node (_i) \ge than _k in range _x subtree, _k <= _S_key(_i)
+     * @return return _y if all nodes are \ge than _k
+     * @details not exists _j in subtree(_x), _k <= _S_key(_j) < _S_key(_i)
     */
     iterator _M_upper_bound(node_type* _x, node_type* _y, const key_type& _k);
     const_iterator _M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) const;
@@ -779,17 +781,21 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::find(const key_type& _k)
 -> iterator {
-
+    iterator _j = _M_lower_bound(_M_begin(), _M_end(), _k);
+    return (_j == end() || _M_key_compare(_k, _S_key(_j._ptr))) ? end() : _j;
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::find(const key_type& _k) const
 -> const_iterator {
-
+    const_iterator _j = _M_lower_bound(_M_begin(), _M_end(), _k);
+    return (_j == cend() || _M_key_compare(_k, _S_key(_j._ptr))) ? cend() : _j;
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::count(const key_type& _k) const
 -> size_type {
-
+    std::pair<const_iterator, const_iterator> _res = equal_range(_k);
+    const size_type _n = asp::distance(_res.first, _res.second);
+    return _n;
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::clear()
