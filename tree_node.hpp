@@ -32,8 +32,8 @@ template <typename _Node> _Node* _S_maximum(_Node* _x);
 // minimum node in subtree rooted at %_x, _Node must be derived class of bitree_node
 template <typename _Node> _Node* _S_minimum(_Node* _x);
 
-template <typename _Tp> void _S_left_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>* _header);
-template <typename _Tp> void _S_right_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>* _header);
+template <typename _Node> void _S_left_rotate(_Node* _x, _Node* _header);
+template <typename _Node> void _S_right_rotate(_Node* _x, _Node* _header);
 /**
  * @brief find the least node (r) greater than %_x
  * @details 4 cases :
@@ -199,12 +199,12 @@ template <typename _Node> _Node* _S_minimum(_Node* _x) {
     return _x;
 };
 
-template <typename _Tp> void _S_left_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>* _header) {
-    bitree_node<_Tp>* _right_child = _x->_right;
+template <typename _Node> void _S_left_rotate(_Node* _x, _Node* _header) {
+    _Node* _right_child = _x->_right;
     if (_right_child == nullptr) {
         return ;
     }
-    bitree_node<_Tp>* _this_parent = _x->_parent;
+    _Node* _this_parent = _x->_parent;
     _right_child->_parent = _this_parent;
     if (_this_parent != nullptr) {
         if (_x == _header->_parent) {
@@ -224,12 +224,12 @@ template <typename _Tp> void _S_left_rotate(bitree_node<_Tp>* _x, bitree_node<_T
     _right_child->_left = _x;
     _x->_parent = _right_child;
 }
-template <typename _Tp> void _S_right_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>* _header) {
-    bitree_node<_Tp>* _left_child = _x->_left;
+template <typename _Node> void _S_right_rotate(_Node* _x, _Node* _header) {
+    _Node* _left_child = _x->_left;
     if (_left_child == nullptr) {
         return ;
     }
-    bitree_node<_Tp>* _this_parent = _x->_parent;
+    _Node* _this_parent = _x->_parent;
     _left_child->_parent = _this_parent;
     if (_this_parent != nullptr) {
         if (_x == _header->_parent) {
