@@ -40,10 +40,6 @@ template <typename _Tp> bool _S_as_black_node(const rb_tree_node<_Tp>* _x);
 
 /**
  * @brief check the rb_tree's 5 rules
- * @returns 0 : normal
- *   1 : root node isn't black.
- *   2 : error in black height. (break 5th rule)
- *   3 : red node has at least one red child. (break 4th rule)
 */
 template <typename _Tp> int _S_check(const rb_tree_node<_Tp>* _header);
 /**
@@ -959,6 +955,13 @@ template <typename _Tp> bool _S_as_black_node(const rb_tree_node<_Tp>* _x) {
     return _x == nullptr || _x->_color == _S_black;
 };
 
+/**
+ * @brief check the rb_tree's 5 rules
+ * @returns 0 : normal ;
+ *   1 : root node isn't black ;
+ *   2 : error in black height (break 5th rule) ;
+ *   3 : red node has at least one red child (break 4th rule) .
+*/
 template <typename _Tp> int _S_check(const rb_tree_node<_Tp>* _header) {
     typedef rb_tree_node<_Tp> node_type;
     const node_type* _root = _header->_parent;

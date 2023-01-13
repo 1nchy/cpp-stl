@@ -53,10 +53,6 @@ template <typename _Node> _Node* _S_bitree_node_decrease(_Node* _x);
 
 /**
  * @brief check the order of binary tree.
- * @returns 0 : normal,
- *   1 : error in left/right-most,
- *   2 : error in order,
- *   3 : error in %_node_count.
 */
 template <typename _Node> int _S_check(const _Node* _header, size_type _n);
 };
@@ -300,6 +296,13 @@ template <typename _Node> _Node* _S_bitree_node_decrease(_Node* _x) {
     return _x;
 };
 
+/**
+ * @brief check the order of binary tree.
+ * @returns 0 : normal ;
+ *   1 : error in left/right-most ;
+ *   2 : error in order ;
+ *   3 : error in %_node_count .
+*/
 template <typename _Node> int _S_check(const _Node* _header, size_type _n) {
     const _Node* _root = _header->_parent;
     const _Node* _leftmost = _S_minimum(_root);
