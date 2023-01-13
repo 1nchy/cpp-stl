@@ -53,8 +53,12 @@ template <typename _Node> _Node* _S_bitree_node_decrease(_Node* _x);
 
 /**
  * @brief check the order of binary tree.
+ * @returns 0 : normal,
+ *   1 : error in left/right-most,
+ *   2 : error in order,
+ *   3 : error in %_node_count.
 */
-template <typename _Node> int _S_check(const _Node* _header);
+template <typename _Node> int _S_check(const _Node* _header, size_type _n);
 };
 
 template <typename _Tp> struct bitree_node : node<_Tp> {
@@ -296,7 +300,7 @@ template <typename _Node> _Node* _S_bitree_node_decrease(_Node* _x) {
     return _x;
 };
 
-template <typename _Node> int _S_check(const _Node* _header) {
+template <typename _Node> int _S_check(const _Node* _header, size_type _n) {
     const _Node* _root = _header->_parent;
     const _Node* _leftmost = _S_minimum(_root);
     const _Node* _rightmost = _S_maximum(_root);
@@ -318,6 +322,7 @@ template <typename _Node> int _S_check(const _Node* _header) {
             _p = _p->_right;
         }
     }
+    if (_traverse_node.size() != _n) { return 3; }
     for (int _i = 0; _i < _traverse_node.size() - 1; ++_i) {
         if (_traverse_node[_i] > _traverse_node[_i+1]) {
             return 2;

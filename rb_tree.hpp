@@ -35,8 +35,22 @@ template <typename _Tp> struct rb_tree_const_iterator;
 */
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> class rb_tree;
 
-namespace __details__ {
-    template <typename _Tp> bool _S_as_black_node(const rb_tree_node<_Tp>* _x);
+namespace __rb_tree__ {
+template <typename _Tp> bool _S_as_black_node(const rb_tree_node<_Tp>* _x);
+
+/**
+ * @brief check the rb_tree's 5 rules
+ * @returns 0 : normal
+ *   1 : root node isn't black.
+ *   2 : error in black height. (break 5th rule)
+ *   3 : red node has at least one red child. (break 4th rule)
+*/
+template <typename _Tp> int _S_check(const rb_tree_node<_Tp>* _header);
+/**
+ * @brief black height of subtree(_s)
+ * @return -1 : error in black height, -2 : broken 4th rule
+ * */
+template <typename _Tp> int _S_black_height(const rb_tree_node<_Tp>* _s, int _bh = 0);
 };
 
 template <typename _Tp> struct rb_tree_node : public bitree_node<_Tp> {
@@ -595,7 +609,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
     // rebalance
     if (_y->_color != _S_red) {
         // because %_y->_color == _S_black, so the sibling node of %_x can't be nullptr
-        while (_x != _root && __details__::_S_as_black_node(_x)) {
+        while (_x != _root && __rb_tree__::_S_as_black_node(_x)) {
             if (_x == _x_parent->_left) {
                 node_type* _w = _x_parent->_right; // the sibling node of _x
                 if (_w->_color == _S_red) { // case 4.1
@@ -605,13 +619,13 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
                     _w = _x_parent->_right; // new sibling node of %_x
                 }
                 // %_w->_color == _S_black
-                if (__details__::_S_as_black_node(_w->_left) && __details__::_S_as_black_node(_w->_right)) { // case 4.2
+                if (__rb_tree__::_S_as_black_node(_w->_left) && __rb_tree__::_S_as_black_node(_w->_right)) { // case 4.2
                     _w->_color = _S_red;
                     _x = _x_parent;
                     _x_parent = _x_parent->_parent;
                 }
                 else {
-                    if (__details__::_S_as_black_node(_w->_right)) {
+                    if (__rb_tree__::_S_as_black_node(_w->_right)) {
                         _w->_left->_color = _S_black;
                         _w->_color = _S_red;
                         __bitree__::_S_right_rotate(_w, &_m_impl._header);
@@ -634,13 +648,13 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
                     __bitree__::_S_right_rotate(_x_parent, &_m_impl._header);
                     _w = _x_parent->_left;
                 }
-                if (__details__::_S_as_black_node(_w->_right) && __details__::_S_as_black_node(_w->_left)) {
+                if (__rb_tree__::_S_as_black_node(_w->_right) && __rb_tree__::_S_as_black_node(_w->_left)) {
                     _w->_color = _S_red;
                     _x = _x_parent;
                     _x_parent = _x_parent->_parent;
                 }
                 else {
-                    if (__details__::_S_as_black_node(_w->_left)) {
+                    if (__rb_tree__::_S_as_black_node(_w->_left)) {
                         _w->_right->_color = _S_black;
                         _w->_color = _S_red;
                         __bitree__::_S_left_rotate(_w, &_m_impl._header);
@@ -910,7 +924,9 @@ rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::equal_range(const key
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::check() const -> int {
-    return __bitree__::_S_check(&_m_impl._header);
+    auto _bt_check = __bitree__::_S_check(&_m_impl._header, _m_impl._node_count);
+    auto _rb_check = __rb_tree__::_S_check(&_m_impl._header);
+    return _bt_check + (_rb_check>0 ? 100 : 0) + _rb_check;
 };
 
 
@@ -937,11 +953,41 @@ template <typename _T> std::ostream& operator<<(std::ostream& os, const rb_tree_
 };
 
 
-/// __details__ implement
-namespace __details__ {
-    template <typename _Tp> bool _S_as_black_node(const rb_tree_node<_Tp>* _x) {
-        return _x == nullptr || _x->_color == _S_black;
-    };
+/// __rb_tree__ implement
+namespace __rb_tree__ {
+template <typename _Tp> bool _S_as_black_node(const rb_tree_node<_Tp>* _x) {
+    return _x == nullptr || _x->_color == _S_black;
+};
+
+template <typename _Tp> int _S_check(const rb_tree_node<_Tp>* _header) {
+    typedef rb_tree_node<_Tp> node_type;
+    const node_type* _root = _header->_parent;
+    if (_root->_color != _S_black) {
+        return 1;
+    }
+    int _bh = _S_black_height(_root);
+    if (_bh == -1) { return 2; }
+    else if (_bh == -2) { return 3; }
+    return 0;
+};
+
+template <typename _Tp> int _S_black_height(const rb_tree_node<_Tp>* _s, int _bh) {
+    if (_s == nullptr) { return _bh; }
+    if (_s->_color == _S_red) {
+        if (!_S_as_black_node(_s->_left) || !_S_as_black_node(_s->_right)) {
+            return -2;
+        }
+    }
+    else {
+        ++_bh;
+    }
+    int _l = _S_black_height(_s->_left, _bh);
+    if (_l < 0) { return _l; }
+    int _r = _S_black_height(_s->_right, _bh);
+    if (_r < 0) { return _r; }
+    if (_l != _r) { return -1; }
+    return _l;
+}
 };
 
 };
