@@ -181,10 +181,10 @@ template <typename _Tp> struct rb_tree_iterator {
     rb_tree_iterator(node_type* _x) : _ptr(_x) {}
     value_type& operator*() const { return _ptr->val(); }
     value_type* operator->() const { return _ptr->valptr(); }
-    self& operator++() { __bitree__::_S_bitree_node_increase_ref(_ptr); return *this; }
-    self operator++(int) { self _ret = *this; __bitree__::_S_bitree_node_increase_ref(_ptr); return _ret; }
-    self& operator--() { __bitree__::_S_bitree_node_decrease_ref(_ptr); return *this; }
-    self operator--(int) { self _ret = *this; __bitree__::_S_bitree_node_decrease_ref(_ptr); return _ret; }
+    self& operator++() { _ptr = __bitree__::_S_bitree_node_increase(_ptr); return *this; }
+    self operator++(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_increase(_ptr); return _ret; }
+    self& operator--() { _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return *this; }
+    self operator--(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return _ret; }
     friend bool operator==(const self& _x, const self& _y) { return _x._ptr == _y._ptr; }
     friend bool operator!=(const self& _x, const self& _y) { return _x._ptr != _y._ptr; }
     template <typename _T> friend std::ostream& operator<<(std::ostream& os, const rb_tree_iterator<_T>& _r);
@@ -209,22 +209,18 @@ template <typename _Tp> struct rb_tree_const_iterator {
     const value_type* operator->() const { return _ptr->valptr(); }
     iterator _const_cast() const { return iterator(const_cast<node_type*>(_ptr)); }
     self& operator++() {
-        node_type* _tmp = const_cast<node_type*>(_ptr);
-        __bitree__::_S_bitree_node_increase_ref(_tmp);
-        _ptr = _tmp; return *this;
+        _ptr = __bitree__::_S_bitree_node_increase(_ptr);
+        return *this;
     }
     self operator++(int) {
-        self _ret = *this; node_type* _tmp = const_cast<node_type*>(_ptr);
-        __bitree__::_S_bitree_node_increase_ref(_tmp); _ptr = _tmp; return _ret;
+        self _ret = *this; _ptr = __bitree__::_S_bitree_node_increase(_ptr); return _ret;
     }
     self& operator--() {
-        node_type* _tmp = const_cast<node_type*>(_ptr);
-        __bitree__::_S_bitree_node_decrease_ref(_tmp);
-        _ptr = _tmp; return *this;
+        _ptr = __bitree__::_S_bitree_node_decrease(_ptr);
+        return *this;
     }
     self operator--(int) {
-        self _ret = *this; node_type* _tmp = const_cast<node_type*>(_ptr);
-        __bitree__::_S_bitree_node_decrease_ref(_tmp); _ptr = _tmp; return _ret;
+        self _ret = *this; _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return _ret;
     }
     friend bool operator==(const self& _x, const self& _y) { return _x._ptr == _y._ptr; }
     friend bool operator!=(const self& _x, const self& _y) { return _x._ptr != _y._ptr; }
@@ -274,8 +270,8 @@ public:
 public:
     iterator begin() { return iterator(_M_leftmost()); }
     const_iterator cbegin() const { return const_iterator(_M_leftmost()); }
-    iterator end() { return iterator(_M_rightmost()); }
-    const_iterator cend() const { return const_iterator(_M_rightmost()); }
+    iterator end() { return iterator(&_m_impl._header); }
+    const_iterator cend() const { return const_iterator(&_m_impl._header); }
     size_type size() const { return _m_impl._node_count; }
     bool empty() const { return _m_impl._node_count == 0; }
 
@@ -418,7 +414,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
     }
 
     // rebalance
-    while (_x != _root && _x->_parent->_color != _S_red) { // break in case 1 & 2
+    while (_x != _root && _x->_parent->_color == _S_red) { // break in case 1 & 2
         node_type* const _xpp = _x->_parent->_parent;
         if (_x->_parent == _xpp->_left) {
             node_type* const _y = _xpp->_right; // uncle node
@@ -509,7 +505,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
             _x = _s->_left;
         }
         else {
-            __bitree__::_S_bitree_node_increase_ref(_y); // successor node of %_s
+            _y = __bitree__::_S_bitree_node_increase(_y); // successor node of %_s
             _x = _y->_right;
         }
     }
