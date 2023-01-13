@@ -252,15 +252,18 @@ public:
     typedef const node_type_base const_node_type_base;
     
     typedef typename node_type::value_type value_type;
-    typedef typename asso_container::type_traits<value_type>::mapped_type mapped_type;
 
     typedef rb_tree_iterator<value_type> iterator;
     typedef rb_tree_const_iterator<value_type> const_iterator;
 
     typedef asp::conditional_t<_UniqueKey, std::pair<iterator, bool>, iterator> ireturn_type;
-    typedef asp::conditional_t<_UniqueKey, _select_1x, asso_container::bool_return<true>> _InsertStatus;
-    typedef asp::conditional_t<_UniqueKey, _select_0x, _select_self> _ExtractIterator;
-    typedef typename asso_container::type_traits<value_type>::ext_value _ExtractValue;
+
+    typedef asso_container::type_traits<value_type, _UniqueKey> _ContainerTypeTraits;
+
+    typedef typename _ContainerTypeTraits::insert_status insert_status;
+    typedef typename _ContainerTypeTraits::ext_iterator ext_iterator;
+    typedef typename _ContainerTypeTraits::ext_value ext_value;
+    typedef typename _ContainerTypeTraits::mapped_type mapped_type;
 
     rb_tree_header<_Value> _m_impl;
     _ExtKey _m_extract_key;

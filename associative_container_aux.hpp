@@ -49,16 +49,18 @@ struct _select_1x {
  * @brief type traits for associative container
 */
 namespace asso_container {
-template <typename _Value> struct type_traits;
+template <typename _Value, bool _UniqueKey> struct type_traits;
 template <bool _b> struct bool_return;
 
-template <typename _Value> struct type_traits {
+template <typename _Value, bool _UniqueKey> struct type_traits {
     typedef _Value value_type;
     typedef __details__::pair_tail_t<_Value> mapped_type;
-    typedef __details__::pair_head_t<_Value> key_type;
+    typedef asp::decay_t<__details__::pair_head_t<_Value>> key_type;
     typedef asp::conditional_t<asp::is_same<key_type, value_type>::value, true_type, false_type> _kv_integration;
     typedef asp::conditional_t<_kv_integration::value, _select_self, _select_0x> ext_key;
     typedef asp::conditional_t<_kv_integration::value, _select_self, _select_1x> ext_value;
+    typedef asp::conditional_t<_UniqueKey, _select_1x, bool_return<true>> insert_status;
+    typedef asp::conditional_t<_UniqueKey, _select_0x, _select_self> ext_iterator;
 };
 
 template <bool _b> struct bool_return {

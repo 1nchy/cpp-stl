@@ -200,10 +200,13 @@ public:
     typedef hash_const_iterator<_Key, _Value, _ExtractKey, _UniqueKey, _Hash, _Alloc> const_iterator;
 
     typedef asp::conditional_t<_UniqueKey, std::pair<iterator, bool>, iterator> ireturn_type;
-    typedef asp::conditional_t<_UniqueKey, _select_1x, asso_container::bool_return<true>> _InsertStatus;
-    typedef asp::conditional_t<_UniqueKey, _select_0x, _select_self> _ExtractIterator;
-    typedef typename asso_container::type_traits<value_type>::ext_value _ExtractValue;
-    typedef typename asso_container::type_traits<value_type>::mapped_type mapped_type;
+
+    typedef asso_container::type_traits<value_type, _UniqueKey> _ContainerTypeTraits;
+
+    typedef typename _ContainerTypeTraits::insert_status insert_status;
+    typedef typename _ContainerTypeTraits::ext_iterator ext_iterator;
+    typedef typename _ContainerTypeTraits::ext_value ext_value;
+    typedef typename _ContainerTypeTraits::mapped_type mapped_type;
 
     typedef rehash_policy::bucket_index bucket_index;
     static const bucket_index _s_illegal_index;

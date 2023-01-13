@@ -554,8 +554,8 @@ template <typename _C> void debug_seq_container<_C>::_M_reg_erase(const_iterator
 template <typename _C> void debug_asso_container<_C>::_M_reg_insert(const value_type& _v, bool _log) {
     if (this->_insert != nullptr) {
         auto _r = (this->_container.*_insert)(_v);
-        bool _i_status = typename container_type::_InsertStatus()(_r);
-        auto _p = typename container_type::_ExtractIterator()(_r);
+        bool _i_status = typename container_type::insert_status()(_r);
+        auto _p = typename container_type::ext_iterator()(_r);
         if (_log) {
             const auto _str = this->_M_string_from_iterator(_p);
             if (!_i_status) {
