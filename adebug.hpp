@@ -60,7 +60,12 @@ template <typename _Container> struct debug_base {
     // debug_base(const self& _da) : _out_check(_da._out_check), _clear(_da._clear), _size(_da._size), _container(_da._container) {}
     virtual ~debug_base() = default;
 
-    virtual void demo() = 0;
+    void demo();
+    void auto_test(const std::string& _str = "");
+    virtual void init_stream(std::stringstream& _is, size_type _n) = 0;
+    virtual void demo_from_istream(std::istream& _is, bool _log, bool _print_container) = 0;
+
+
     void _M_print_container() const { std::cout << _container << std::endl;}
 
     int _M_reg_check() const;
@@ -146,11 +151,9 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
     void _M_reg_erase(const_iterator _i, bool _log = false);
 
 /// demo function
-    void demo() override;
-    void demo_from_istream(std::istream& _is, bool _log, bool _print_container);
+    void demo_from_istream(std::istream& _is, bool _log, bool _print_container) override;
 
-    void auto_test();
-    void init_stream(std::stringstream& _is, size_type _n);
+    void init_stream(std::stringstream& _is, size_type _n) override;
 
 protected:
 /// helper
@@ -196,11 +199,9 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
     void _M_reg_find(const key_type& _k, bool _log = false) const;
 
 /// demo function
-    void demo() override;
-    void demo_from_istream(std::istream& _is, bool _log, bool _print_container);
+    void demo_from_istream(std::istream& _is, bool _log, bool _print_container) override;
 
-    void auto_test();
-    void init_stream(std::stringstream& _is, size_type _n);
+    void init_stream(std::stringstream& _is, size_type _n) override;
 
 private:
     bool _b_kv_self = asp::is_same<key_type, value_type>::value;
@@ -212,12 +213,27 @@ static bool _M_end_of_file(std::istream& _is = std::cin) {
 };
 static void _M_reset_cin(std::istream& _is = std::cin) {
     _is.clear(); // _is.sync();
-}
-
-template <typename _SC> void debug_seq_container<_SC>::demo() {
-    std::cout << '[' << typeid(asp::decay_t<_SC>).name() << "]:" << std::endl;
-    demo_from_istream(std::cin, true, true);
 };
+
+template <typename _C> void debug_base<_C>::demo() {
+    std::cout << '[' << typeid(asp::decay_t<_C>).name() << "]:" << std::endl;
+    this->demo_from_istream(std::cin, true, true);
+};
+template <typename _C> void debug_base<_C>::auto_test(const std::string& _str) {
+    std::stringstream _ss;
+    if (!_str.empty()) {
+        _ss.str(_str);
+    }
+    else {
+        this->init_stream(_ss, 1000);
+        // const std::string _order_str = _ss.str();
+        // ASP_LOG("order: %s.\n", _order_str.c_str());
+        // _ss.clear();
+        // _ss.str(_order_str);
+    }
+    this->demo_from_istream(_ss, true, true);
+};
+
 template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::istream& _is, bool _log, bool _print_container) {
     size_type _i; // iterator_index
     difference_type _di; // input_index
@@ -295,17 +311,6 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
     }
     _M_reset_cin(_is);
 };
-template <typename _SC> void debug_seq_container<_SC>::auto_test() {
-    std::stringstream _ss;
-    init_stream(_ss, 1000);
-    // const std::string _order_str = _ss.str();
-    // ASP_LOG("order: %s.\n", _order_str.c_str());
-    // _ss.clear();
-    // _ss.str(_order_str);
-    // const std::string _special_str = "";
-    // _ss.str(_special_str);
-    demo_from_istream(_ss, true, true);
-};
 template <typename _SC> void debug_seq_container<_SC>::init_stream(std::stringstream& _is, size_type _n) {
     const int _max_key_value = 31;
     const int _modify_func = (_push_front != nullptr && _pop_front != nullptr) ? 3 : 2;
@@ -352,10 +357,6 @@ template <typename _SC> void debug_seq_container<_SC>::init_stream(std::stringst
     _is << 'p' << ' ';
 };
 
-template <typename _AC> void debug_asso_container<_AC>::demo() {
-    std::cout << '[' << typeid(asp::decay_t<_AC>).name() << "]:" << std::endl;
-    demo_from_istream(std::cin, true, true);
-};
 template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::istream& _is, bool _log, bool _print_container) {
     key_type _k;
     // value_type _v;
@@ -424,17 +425,6 @@ template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::i
         std::cout << std::flush;
     }
     _M_reset_cin(_is);
-};
-template <typename _AC> void debug_asso_container<_AC>::auto_test() {
-    std::stringstream _ss;
-    // init_stream(_ss, 1000);
-    // const std::string _order_str = _ss.str();
-    // ASP_LOG("order: %s.\n", _order_str.c_str());
-    // _ss.clear();
-    // _ss.str(_order_str);
-    const std::string _special_str = "a 1 a 2 a 3 a 5 a 6 a 4 pause a 7 d 4 ";
-    _ss.str(_special_str);
-    demo_from_istream(_ss, true, false);
 };
 template <typename _AC> void debug_asso_container<_AC>::init_stream(std::stringstream& _is, size_type _n) {
     /**
