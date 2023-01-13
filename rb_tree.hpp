@@ -61,6 +61,7 @@ template <typename _Tp> struct rb_tree_node : public bitree_node<_Tp> {
     rb_tree_node(self&& _s) : base(_s), _color(_s._color) {}
     rb_tree_node(const value_type& _v) : base(_v) {}
     template <typename... _Args> rb_tree_node(_Args&&... _args) : base(std::forward<_Args>(_args)...) {}
+    virtual ~rb_tree_node() {}
 
     _Rb_tree_color _color;
     self* _parent = nullptr;
@@ -195,6 +196,7 @@ template <typename _Tp> struct rb_tree_iterator {
     self operator++(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_increase(_ptr); return _ret; }
     self& operator--() { _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return *this; }
     self operator--(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return _ret; }
+    operator bool() const { return _ptr != nullptr; }
     friend bool operator==(const self& _x, const self& _y) { return _x._ptr == _y._ptr; }
     friend bool operator!=(const self& _x, const self& _y) { return _x._ptr != _y._ptr; }
     template <typename _T> friend std::ostream& operator<<(std::ostream& os, const rb_tree_iterator<_T>& _r);
@@ -218,20 +220,11 @@ template <typename _Tp> struct rb_tree_const_iterator {
     const value_type& operator*() const { return _ptr->val(); }
     const value_type* operator->() const { return _ptr->valptr(); }
     iterator _const_cast() const { return iterator(const_cast<node_type*>(_ptr)); }
-    self& operator++() {
-        _ptr = __bitree__::_S_bitree_node_increase(_ptr);
-        return *this;
-    }
-    self operator++(int) {
-        self _ret = *this; _ptr = __bitree__::_S_bitree_node_increase(_ptr); return _ret;
-    }
-    self& operator--() {
-        _ptr = __bitree__::_S_bitree_node_decrease(_ptr);
-        return *this;
-    }
-    self operator--(int) {
-        self _ret = *this; _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return _ret;
-    }
+    self& operator++() { _ptr = __bitree__::_S_bitree_node_increase(_ptr); return *this; }
+    self operator++(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_increase(_ptr); return _ret; }
+    self& operator--() { _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return *this; }
+    self operator--(int) { self _ret = *this; _ptr = __bitree__::_S_bitree_node_decrease(_ptr); return _ret; }
+    operator bool() const { return _ptr != nullptr; }
     friend bool operator==(const self& _x, const self& _y) { return _x._ptr == _y._ptr; }
     friend bool operator!=(const self& _x, const self& _y) { return _x._ptr != _y._ptr; }
     template <typename _T> friend std::ostream& operator<<(std::ostream& os, const rb_tree_const_iterator<_T>& _r);
@@ -815,9 +808,11 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
         _ret = size();
         clear();
     }
-    while (_first != _last) {
-        _M_erase(_first++);
-        ++_ret;
+    else {
+        while (_first != _last) {
+            _M_erase(_first++);
+            ++_ret;
+        }
     }
     return _ret;
 };
@@ -940,11 +935,17 @@ std::ostream& operator<<(std::ostream& os, const rb_tree<_K, _V, _EK, _UK, _C, _
     return os;
 };
 template <typename _T> std::ostream& operator<<(std::ostream& os, const rb_tree_iterator<_T>& _r) {
-    os << obj_string::_M_obj_2_string(*_r);
+    if (_r)
+        os << obj_string::_M_obj_2_string(*_r);
+    else 
+        os << "null";
     return os;
 };
 template <typename _T> std::ostream& operator<<(std::ostream& os, const rb_tree_const_iterator<_T>& _r) {
-    os << obj_string::_M_obj_2_string(*_r);
+    if (_r)
+        os << obj_string::_M_obj_2_string(*_r);
+    else
+        os << "null";
     return os;
 };
 
