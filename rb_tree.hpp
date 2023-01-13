@@ -567,7 +567,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
             _root = _x;
         }
         else {
-            if (_s->_parent->_left = _s) {
+            if (_s->_parent->_left == _s) {
                 _s->_parent->_left = _x;
             }
             else {

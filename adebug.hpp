@@ -410,6 +410,9 @@ template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::i
             _M_reset_cin(_is);
             return;
         }; break;
+        case base::__PAUSE__: {
+            _S_pause();
+        }; break;
         default: break;
         }
         _op.clear();
@@ -424,7 +427,13 @@ template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::i
 };
 template <typename _AC> void debug_asso_container<_AC>::auto_test() {
     std::stringstream _ss;
-    init_stream(_ss, 1000);
+    // init_stream(_ss, 1000);
+    // const std::string _order_str = _ss.str();
+    // ASP_LOG("order: %s.\n", _order_str.c_str());
+    // _ss.clear();
+    // _ss.str(_order_str);
+    const std::string _special_str = "a 1 a 2 a 3 a 5 a 6 a 4 pause a 7 d 4 ";
+    _ss.str(_special_str);
     demo_from_istream(_ss, true, false);
 };
 template <typename _AC> void debug_asso_container<_AC>::init_stream(std::stringstream& _is, size_type _n) {
