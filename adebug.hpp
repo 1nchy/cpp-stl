@@ -56,6 +56,8 @@ template <typename _Container> struct debug_base {
 
     container_type _container;
 
+    size_type _circle_count = 1000;
+
     debug_base() = default;
     // debug_base(const self& _da) : _out_check(_da._out_check), _clear(_da._clear), _size(_da._size), _container(_da._container) {}
     virtual ~debug_base() = default;
@@ -225,7 +227,7 @@ template <typename _C> void debug_base<_C>::auto_test(const std::string& _str) {
         _ss.str(_str);
     }
     else {
-        this->init_stream(_ss, 1000);
+        this->init_stream(_ss, _circle_count);
         // const std::string _order_str = _ss.str();
         // ASP_LOG("order: %s.\n", _order_str.c_str());
         // _ss.clear();
