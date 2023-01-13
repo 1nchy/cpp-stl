@@ -327,7 +327,7 @@ template <typename _Node> int _S_check(const _Node* _header, size_type _n) {
     }
     if (_traverse_node.size() != _n) { return 3; }
     for (int _i = 0; _i < _traverse_node.size() - 1; ++_i) {
-        if (_traverse_node[_i] > _traverse_node[_i+1]) {
+        if (_traverse_node[_i]->val() > _traverse_node[_i+1]->val()) {
             return 2;
         }
     }
