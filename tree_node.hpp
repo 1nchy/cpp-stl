@@ -29,10 +29,8 @@ template <typename _Tp> struct bitree_header;
 namespace __bitree__ {
 // maximum node in subtree rooted at %_x, _Node must be derived class of bitree_node
 template <typename _Node> _Node* _S_maximum(_Node* _x);
-template <typename _Node> const _Node* _S_maximum(const _Node* _x);
 // minimum node in subtree rooted at %_x, _Node must be derived class of bitree_node
 template <typename _Node> _Node* _S_minimum(_Node* _x);
-template <typename _Node> const _Node* _S_minimum(const _Node* _x);
 
 template <typename _Tp> void _S_left_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>* _header);
 template <typename _Tp> void _S_right_rotate(bitree_node<_Tp>* _x, bitree_node<_Tp>* _header);
@@ -52,6 +50,11 @@ template <typename _Node> _Node* _S_bitree_node_increase(_Node* _x);
  *    |   r    |  ...   r        | _x     | _x
 */
 template <typename _Node> _Node* _S_bitree_node_decrease(_Node* _x);
+
+/**
+ * @brief check the order of binary tree.
+*/
+template <typename _Node> int _S_check(const _Node* _header);
 };
 
 template <typename _Tp> struct bitree_node : node<_Tp> {
@@ -184,26 +187,14 @@ template <typename _Tp> struct bitree_header {
 ///  __bitree__ implement
 namespace __bitree__ {
 template <typename _Node> _Node* _S_maximum(_Node* _x) {
-    while (_x->_left != nullptr) {
-        _x = _x->_left;
-    }
-    return _x;
-};
-template <typename _Node> const _Node* _S_maximum(const _Node* _x) {
-    while (_x->_left != nullptr) {
-        _x = _x->_left;
+    while (_x->_right != nullptr) {
+        _x = _x->_right;
     }
     return _x;
 };
 template <typename _Node> _Node* _S_minimum(_Node* _x) {
-    while (_x->_right != nullptr) {
-        _x = _x->_right;
-    }
-    return _x;
-};
-template <typename _Node> const _Node* _S_minimum(const _Node* _x) {
-    while (_x->_right != nullptr) {
-        _x = _x->_right;
+    while (_x->_left != nullptr) {
+        _x = _x->_left;
     }
     return _x;
 };
@@ -303,6 +294,36 @@ template <typename _Node> _Node* _S_bitree_node_decrease(_Node* _x) {
         _x = _y;
     }
     return _x;
+};
+
+template <typename _Node> int _S_check(const _Node* _header) {
+    const _Node* _root = _header->_parent;
+    const _Node* _leftmost = _S_minimum(_root);
+    const _Node* _rightmost = _S_maximum(_root);
+    if (_header->_left != _leftmost || _header->_right != _rightmost) {
+        return 1;
+    }
+    const _Node* _p = _root;
+    std::vector<const _Node*> _vn;
+    std::vector<const _Node*> _traverse_node;
+    while (_p != nullptr || !_vn.empty()) {
+        if (_p != nullptr) {
+            _vn.push_back(_p);
+            _p = _p->_left;
+        }
+        else {
+            _p = _vn.back();
+            _vn.pop_back();
+            _traverse_node.push_back(_p);
+            _p = _p->_right;
+        }
+    }
+    for (int _i = 0; _i < _traverse_node.size() - 1; ++_i) {
+        if (_traverse_node[_i] > _traverse_node[_i+1]) {
+            return 2;
+        }
+    }
+    return 0;
 };
 };
 };

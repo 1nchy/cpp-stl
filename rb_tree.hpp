@@ -289,6 +289,9 @@ public:
     std::pair<iterator, iterator> equal_range(const key_type& _k);
     std::pair<const_iterator, const_iterator> equal_range(const key_type& _k) const;
 
+    // used for test
+    int check() const;
+
 protected:
     node_type* _M_root() { return _m_impl._header._parent; }
     const_node_type* _M_root() const { return _m_impl._header._parent; }
@@ -904,6 +907,12 @@ rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::equal_range(const key
     }
     return std::make_pair(const_iterator(_y), const_iterator(_y));
 };
+
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::check() const -> int {
+    return __bitree__::_S_check(&_m_impl._header);
+};
+
 
 /// output implement
 template <typename _K, typename _V, typename _EK, bool _UK, typename _C, typename _A>
