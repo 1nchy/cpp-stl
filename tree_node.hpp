@@ -3,6 +3,8 @@
 
 #include "node.hpp"
 
+#include "associative_container_aux.hpp"
+
 namespace asp {
 
 template <typename _Tp> struct bitree_node;
@@ -54,7 +56,7 @@ template <typename _Node> _Node* _S_bitree_node_decrease(_Node* _x);
 /**
  * @brief check the order of binary tree.
 */
-template <typename _Node> int _S_check(const _Node* _header, size_type _n);
+template <typename _Comp, typename _ExtKey, typename _Node> int _S_check(const _Node* _header, size_type _n);
 };
 
 template <typename _Tp> struct bitree_node : node<_Tp> {
@@ -303,7 +305,7 @@ template <typename _Node> _Node* _S_bitree_node_decrease(_Node* _x) {
  *   2 : error in order ;
  *   3 : error in %_node_count .
 */
-template <typename _Node> int _S_check(const _Node* _header, size_type _n) {
+template <typename _Comp, typename _ExtKey, typename _Node> int _S_check(const _Node* _header, size_type _n) {
     const _Node* _root = _header->_parent;
     if (_root == nullptr) { return 0; }
     const _Node* _leftmost = _S_minimum(_root);
@@ -328,7 +330,7 @@ template <typename _Node> int _S_check(const _Node* _header, size_type _n) {
     }
     if (_traverse_node.size() != _n) { return 3; }
     for (int _i = 0; _i < _traverse_node.size() - 1; ++_i) {
-        if (_traverse_node[_i]->val() > _traverse_node[_i+1]->val()) {
+        if (_Comp()(_ExtKey()(_traverse_node[_i+1]->val()), _ExtKey()(_traverse_node[_i]->val()))) {
             return 2;
         }
     }

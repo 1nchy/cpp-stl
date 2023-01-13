@@ -246,6 +246,7 @@ public:
     typedef typename rbt_alloc::node_alloc_traits node_alloc_traits;
 
     typedef _Key key_type;
+    typedef _Comp key_compare;
     typedef typename base::node_type node_type;
     typedef const node_type const_node_type;
     typedef typename base::node_type_base node_type_base;
@@ -264,6 +265,7 @@ public:
     typedef typename _ContainerTypeTraits::ext_iterator ext_iterator;
     typedef typename _ContainerTypeTraits::ext_value ext_value;
     typedef typename _ContainerTypeTraits::mapped_type mapped_type;
+    typedef _ExtKey ext_key;
 
     rb_tree_header<_Value> _m_impl;
     _ExtKey _m_extract_key;
@@ -922,7 +924,8 @@ rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::equal_range(const key
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::check() const -> int {
-    auto _bt_check = __bitree__::_S_check(&_m_impl._header, _m_impl._node_count);
+    typedef rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc> rb_tree_t;
+    auto _bt_check = __bitree__::_S_check<_Comp, typename rb_tree_t::ext_key>(&_m_impl._header, _m_impl._node_count);
     auto _rb_check = __rb_tree__::_S_check(&_m_impl._header);
     return _bt_check + (_rb_check>0 ? 100 : 0) + _rb_check;
 };
