@@ -592,7 +592,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
     // rebalance
     if (_y->_color != _S_red) {
         // because %_y->_color == _S_black, so the sibling node of %_x can't be nullptr
-        while (_x != _root && (_x == nullptr || _x->_color == _S_black)) {
+        while (_x != _root && __details__::_S_as_black_node(_x)) {
             if (_x == _x_parent->_left) {
                 node_type* _w = _x_parent->_right; // the sibling node of _x
                 if (_w->_color == _S_red) { // case 4.1
@@ -627,7 +627,7 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
                 node_type* _w = _x_parent->_left;
                 if (_w->_color == _S_red) {
                     _w->_color = _S_black;
-                    _x_parent->_color = _S_black;
+                    _x_parent->_color = _S_red;
                     __bitree__::_S_right_rotate(_x_parent, &_m_impl._header);
                     _w = _x_parent->_left;
                 }
