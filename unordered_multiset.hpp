@@ -26,10 +26,10 @@ public:
     typedef typename umset_ht::iterator iterator;
     typedef typename umset_ht::const_iterator const_iterator;
     typedef typename umset_ht::ireturn_type ireturn_type;
-    typedef typename umset_ht::_InsertStatus _InsertStatus;
-    typedef typename umset_ht::_ExtractIterator _ExtractIterator;
-    typedef typename umset_ht::_ExtractKey _ExtractKey;
-    typedef typename umset_ht::_ExtractValue _ExtractValue;
+    typedef typename umset_ht::insert_status insert_status;
+    typedef typename umset_ht::ext_iterator ext_iterator;
+    typedef typename umset_ht::ext_key ext_key;
+    typedef typename umset_ht::ext_value ext_value;
 
 /// (de)constructor
     unordered_multiset() = default;

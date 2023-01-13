@@ -26,10 +26,10 @@ public:
     typedef typename ummap_ht::iterator iterator;
     typedef typename ummap_ht::const_iterator const_iterator;
     typedef typename ummap_ht::ireturn_type ireturn_type;
-    typedef typename ummap_ht::_InsertStatus _InsertStatus;
-    typedef typename ummap_ht::_ExtractIterator _ExtractIterator;
-    typedef typename ummap_ht::_ExtractKey _ExtractKey;
-    typedef typename ummap_ht::_ExtractValue _ExtractValue;
+    typedef typename ummap_ht::insert_status insert_status;
+    typedef typename ummap_ht::ext_iterator ext_iterator;
+    typedef typename ummap_ht::ext_key ext_key;
+    typedef typename ummap_ht::ext_value ext_value;
 
 /// (de)constructor
     unordered_multimap() = default;

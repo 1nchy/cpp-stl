@@ -26,10 +26,10 @@ public:
     typedef typename uset_ht::iterator iterator;
     typedef typename uset_ht::const_iterator const_iterator;
     typedef typename uset_ht::ireturn_type ireturn_type;
-    typedef typename uset_ht::_InsertStatus _InsertStatus;
-    typedef typename uset_ht::_ExtractIterator _ExtractIterator;
-    typedef typename uset_ht::_ExtractKey _ExtractKey;
-    typedef typename uset_ht::_ExtractValue _ExtractValue;
+    typedef typename uset_ht::insert_status insert_status;
+    typedef typename uset_ht::ext_iterator ext_iterator;
+    typedef typename uset_ht::ext_key ext_key;
+    typedef typename uset_ht::ext_value ext_value;
 
 /// (de)constructor
     unordered_set() = default;

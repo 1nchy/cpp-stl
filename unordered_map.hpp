@@ -26,10 +26,10 @@ public:
     typedef typename umap_ht::iterator iterator;
     typedef typename umap_ht::const_iterator const_iterator;
     typedef typename umap_ht::ireturn_type ireturn_type;
-    typedef typename umap_ht::_InsertStatus _InsertStatus;
-    typedef typename umap_ht::_ExtractIterator _ExtractIterator;
-    typedef typename umap_ht::_ExtractKey _ExtractKey;
-    typedef typename umap_ht::_ExtractValue _ExtractValue;
+    typedef typename umap_ht::insert_status insert_status;
+    typedef typename umap_ht::ext_iterator ext_iterator;
+    typedef typename umap_ht::ext_key ext_key;
+    typedef typename umap_ht::ext_value ext_value;
 
 /// (de)constructor
     unordered_map() = default;
