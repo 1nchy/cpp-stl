@@ -305,6 +305,7 @@ template <typename _Node> _Node* _S_bitree_node_decrease(_Node* _x) {
 */
 template <typename _Node> int _S_check(const _Node* _header, size_type _n) {
     const _Node* _root = _header->_parent;
+    if (_root == nullptr) { return 0; }
     const _Node* _leftmost = _S_minimum(_root);
     const _Node* _rightmost = _S_maximum(_root);
     if (_header->_left != _leftmost || _header->_right != _rightmost) {

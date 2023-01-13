@@ -137,7 +137,11 @@ template <typename _Tp> struct rb_tree_header : public bitree_header<_Tp> {
     }
 
     void reset() {
-        base::reset();
+        _header._parent = nullptr;
+        _header._left = &_header;
+        _header._right = &_header;
+        _header._color = _S_red;
+        _node_count = 0;
     }
 };
 
@@ -966,6 +970,7 @@ template <typename _Tp> bool _S_as_black_node(const rb_tree_node<_Tp>* _x) {
 template <typename _Tp> int _S_check(const rb_tree_node<_Tp>* _header) {
     typedef rb_tree_node<_Tp> node_type;
     const node_type* _root = _header->_parent;
+    if (_root == nullptr) { return 0; }
     if (_root->_color != _S_black) {
         return 1;
     }
