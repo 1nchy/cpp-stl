@@ -6,13 +6,49 @@
 #include "list_node.hpp"
 
 namespace asp {
-template <typename _Tp> class list;
-template <typename _Tp> class list {
-    typedef list<_Tp> self;
+template <typename _Tp, typename _Alloc = std::allocator<_Tp>> class list;
+template <typename _Tp, typename _Alloc = std::allocator<_Tp>> struct list_alloc;
+
+template <typename _Tp, typename _Alloc> struct list_alloc : public _Alloc {
+    typedef list_node<_Tp> node_type;
+    typedef _Alloc elt_allocator_type;
+    typedef std::allocator_traits<elt_allocator_type> elt_alloc_traits;
+    typedef typename elt_alloc_traits::template rebind_alloc<node_type> node_allocator_type;
+    typedef std::allocator_traits<node_allocator_type> node_alloc_traits;
+
+    elt_allocator_type& _M_get_elt_allocator() { return *static_cast<elt_allocator_type*>(this); }
+    const elt_allocator_type& _M_get_elt_allocator() const { return *static_cast<const elt_allocator_type*>(this); }
+    node_allocator_type _M_get_node_allocator() const { return node_allocator_type(_M_get_elt_allocator()); }
+
+    node_type* _M_allocate_node(const node_type& _x) {
+        node_allocator_type _node_alloc = _M_get_node_allocator();
+        auto _ptr = node_alloc_traits::allocate(_node_alloc, 1);
+        node_type* _p = std::addressof(*_ptr);
+        node_alloc_traits::construct(_node_alloc, _p, _x.val());
+        return _p;
+    }
+    template <typename... _Args> node_type* _M_allocate_node(_Args&&... _args) {
+        node_allocator_type _node_alloc = _M_get_node_allocator();
+        auto _ptr = node_alloc_traits::allocate(_node_alloc, 1);
+        node_type* _p = std::addressof(*_ptr);
+        node_alloc_traits::construct(_node_alloc, _p, std::forward<_Args>(_args)...);
+        return _p;
+    }
+    void _M_deallocate_node(node_type* _p) {
+        node_allocator_type _node_alloc = _M_get_node_allocator();
+        node_alloc_traits::destroy(_node_alloc, _p);
+        node_alloc_traits::deallocate(_node_alloc, _p, 1);
+    }
+};
+
+template <typename _Tp, typename _Alloc> class list : public list_alloc<_Tp, _Alloc> {
+    typedef list<_Tp, _Alloc> self;
+    typedef list_alloc<_Tp, _Alloc> base;
 public:
-    using value_type = typename list_node<_Tp>::value_type;
-    using pointer = typename list_node<_Tp>::pointer;
-    using reference = typename list_node<_Tp>::reference;
+    typedef typename base::node_type node_type;
+    typedef typename node_type::value_type value_type;
+    typedef typename node_type::pointer pointer;
+    typedef typename node_type::reference reference;
     typedef list_iterator<value_type> iterator;
     typedef list_const_iterator<value_type> const_iterator;
     list() {
@@ -23,7 +59,7 @@ public:
         this->_M_assign(_l);
     }
     virtual ~list() {
-        list_node<value_type>* p = mark.next;
+        node_type* p = mark.next;
         while (p != &mark) {
             auto pnext = p->next;
             delete p;
@@ -45,7 +81,7 @@ public:
     const_iterator cend() const { return const_iterator(&mark); }
 
     void push_front(const value_type& e) { // to head
-        list_node<value_type>* p = new list_node<value_type>(e);
+        node_type* p = this->_M_allocate_node(e);
         if (p == nullptr) {
             return;
         }
@@ -56,13 +92,13 @@ public:
         if (empty()) {
             return;
         }
-        list_node<value_type>* p = mark.next;
+        node_type* p = mark.next;
         p->unhook();
-        delete p;
+        this->_M_deallocate_node(p);
         --m_element_count;
     }
     void push_back(const value_type& e) { // to tail
-        list_node<value_type>* p = new list_node<value_type>(e);
+        node_type* p = this->_M_allocate_node(e);
         if (p == nullptr) {
             return;
         }
@@ -73,35 +109,35 @@ public:
         if (empty()) {
             return;
         }
-        list_node<value_type>* p = mark.prev;
+        node_type* p = mark.prev;
         p->unhook();
-        delete p;
+        this->_M_deallocate_node(p);
         --m_element_count;
     }
     iterator insert(const_iterator pos, const value_type& e) {
-        list_node<value_type>* p = new list_node<value_type>(e);
+        node_type* p = this->_M_allocate_node(e);
         p->hook(pos._const_cast()._ptr);
         ++m_element_count;
         return iterator(p);
     }
     iterator erase(const_iterator pos) {
         iterator _ret = iterator(pos._const_cast()._ptr->next);
-        list_node<value_type>* p =pos._const_cast()._ptr;
+        node_type* p =pos._const_cast()._ptr;
         if (p == &mark) {
             return end();
         }
         p->unhook();
         --m_element_count;
-        delete p;
+        this->_M_deallocate_node(p);
         return _ret;
     }
     iterator erase(const_iterator first, const_iterator last) {
         iterator _ret = iterator(last._const_cast()._ptr);
-        list_node<value_type>* p = first._const_cast()._ptr;
+        node_type* p = first._const_cast()._ptr;
         while (p != last._ptr) {
             auto _tmp = p->next;
             p->unhook();
-            delete p;
+            this->_M_deallocate_node(p);
             --m_element_count;
             p = _tmp;
         }
@@ -109,12 +145,12 @@ public:
     }
     void clear() {
         if (empty()) return;
-        list_node<value_type>* prev = nullptr;
-        list_node<value_type>* p = mark.next;
+        node_type* prev = nullptr;
+        node_type* p = mark.next;
         for (; p != nullptr && p != &mark;) {
             prev = p;
             p = p->next;
-            delete prev;
+            this->_M_deallocate_node(prev);
         }
         _M_init_mark();
         m_element_count = 0;
@@ -146,10 +182,10 @@ protected:
     }
 
 private:
-    // list_node<value_type>* head = nullptr; // head->prev = nullptr
-    // list_node<value_type>* tail = nullptr; // tail->next = nullptr
+    // node_type* head = nullptr; // head->prev = nullptr
+    // node_type* tail = nullptr; // tail->next = nullptr
     // head = mark.next;  tail = mark.prev;
-    list_node<value_type> mark;
+    node_type mark;
     size_type m_element_count = 0;
 };
 };
