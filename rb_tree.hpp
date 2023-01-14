@@ -280,6 +280,12 @@ public:
      friend std::ostream& operator<<(std::ostream& os, const rb_tree<_K, _V, _EK, _UK, _C, _A>& _h);
 
 public:
+    rb_tree() = default;
+    rb_tree(const self& _rbt);
+    virtual ~rb_tree();
+    template <typename _NodeGen> void _M_assign(const self& _rbt, const _NodeGen&);
+    template <typename _NodeGen> node_type* _M_clone_tree(const node_type* _x, node_type* _y, const _NodeGen&);
+
     iterator begin() { return iterator(_M_leftmost()); }
     const_iterator cbegin() const { return const_iterator(_M_leftmost()); }
     iterator end() { return iterator(&_m_impl._header); }
@@ -837,6 +843,46 @@ auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
 };
 
 /// rb_tree public implement
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::rb_tree(const self& _rbt) {
+    _M_assign(_rbt, [this](const node_type* _n) -> node_type* {
+        node_type* _p = this->_M_allocate_node(*_n);
+        _p->_parent = nullptr; _p->_left = nullptr; _p->_right = nullptr;
+        _p->_color = _n->_color;
+        return _p;
+    });
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::~rb_tree() {
+
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+template <typename _NodeGen> void rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_assign(const self& _rbt, const _NodeGen& _gen) {
+    _m_impl.reset();
+    if (_rbt._M_begin() == nullptr) { return; }
+    _m_impl._node_count = _rbt.size();
+    node_type* _root = _M_clone_tree(_rbt._M_begin(), _M_end(), _gen);
+    _m_impl._header._parent = _root;
+    _m_impl._header._left = __bitree__::_S_minimum(_root);
+    _m_impl._header._right = __bitree__::_S_maximum(_root);
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+template <typename _NodeGen> auto rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>
+::_M_clone_tree(const node_type* _x, node_type* _p, const _NodeGen& _gen) -> node_type* {
+    node_type* _top = _gen(_x);
+    _top->_parent = _p;
+
+    if (_x->_left != nullptr) {
+        _top->_left = _M_clone_tree(_x->_left, _top, _gen);
+    }
+    if (_x->_right != nullptr) {
+        _top->_right = _M_clone_tree(_x->_right, _top, _gen);
+    }
+
+    return _top;
+};
+
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 rb_tree<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::find(const key_type& _k)
 -> iterator {
