@@ -15,60 +15,6 @@ template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey,
  typename _Comp = std::less<_Key>, typename _Alloc = std::allocator<_Value>> class skip_list;
 template <typename _Value, typename _Alloc = std::allocator<_Value>> struct skip_list_alloc;
 
-template <typename _Tp> struct skip_list_iterator;
-template <typename _Tp> struct skip_list_const_iterator;
-
-template <typename _Tp> struct skip_list_iterator {
-    typedef asp::bidirectional_iterator_tag iterator_category;
-    typedef skip_list_iterator<_Tp> self;
-    typedef skip_list_node<_Tp> node_type;
-    typedef typename node_type::value_type value_type;
-    typedef value_type* pointer;
-    typedef value_type& reference;
-    typedef asp::difference_type difference_type;
-
-    node_type* _ptr = nullptr;
-
-    skip_list_iterator() {}
-    skip_list_iterator(node_type* _n) : _ptr(_n) {}
-    value_type& operator*() const { return _ptr->val(); }
-    value_type* operator->() const { return _ptr->valptr(); }
-    self& operator++() { _ptr = _ptr->_next[0]; return *this; }
-    self operator++(int) { self _ret = *this; _ptr = _ptr->_next[0]; return _ret; }
-    self& operator--() { _ptr = _ptr->_prev;  return *this; }
-    self operator--(int) { self _ret = *this; _ptr = _ptr->_prev; return _ret; }
-    operator bool() const { return _ptr != nullptr; }
-    friend bool operator==(const self& _x, const self& _y) {return _x._ptr == _y._ptr; }
-    friend bool operator!=(const self& _x, const self& _y) {return _x._ptr != _y._ptr; }
-    template <typename _T> friend std::ostream& operator<<(std::ostream& os, const skip_list_iterator<_T>& _sli);
-};
-template <typename _Tp> struct skip_list_const_iterator {
-    typedef asp::bidirectional_iterator_tag iterator_category;
-    typedef skip_list_const_iterator<_Tp> self;
-    typedef skip_list_iterator<_Tp> iterator;
-    typedef skip_list_node<_Tp> node_type;
-    typedef typename node_type::value_type value_type;
-    typedef value_type* pointer;
-    typedef value_type& reference;
-    typedef asp::difference_type difference_type;
-
-    const node_type* _ptr = nullptr;
-
-    skip_list_const_iterator() {}
-    skip_list_const_iterator(const node_type* _n) : _ptr(_n) {}
-    skip_list_const_iterator(const iterator& _i) : _ptr(_i._ptr) {}
-    const value_type& operator*() const { return _ptr->val(); }
-    const value_type* operator->() const { return _ptr->valptr(); }
-    self& operator++() { _ptr = _ptr->_next[0]; return *this; }
-    self operator++(int) { self _ret = *this; _ptr = _ptr->_next[0]; return _ret; }
-    self& operator--() { _ptr = _ptr->_prev;  return *this; }
-    self operator--(int) { self _ret = *this; _ptr = _ptr->_prev; return _ret; }
-    operator bool() const { return _ptr != nullptr; }
-    friend bool operator==(const self& _x, const self& _y) {return _x._ptr == _y._ptr; }
-    friend bool operator!=(const self& _x, const self& _y) {return _x._ptr != _y._ptr; }
-    template <typename _T> friend std::ostream& operator<<(std::ostream& os, const skip_list_const_iterator<_T>& _sli);
-};
-
 template <typename _Value, typename _Alloc> struct skip_list_alloc : public _Alloc {
     typedef skip_list_node<_Value> node_type;
     typedef node_type* map_type;
@@ -254,7 +200,10 @@ _M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) con
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
-_M_insert_unique_position(const key_type& _k) -> std::pair<map_type*, difference_type> {};
+_M_insert_unique_position(const key_type& _k) -> std::pair<map_type*, difference_type> {
+    map_type* _ret = this->_M_allocate_map(_S_max_height);
+
+};
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
 _M_insert_multi_position(const key_type& _k) -> std::pair<map_type*, difference_type> {};
