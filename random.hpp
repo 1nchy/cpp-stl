@@ -13,6 +13,8 @@ namespace asp {
     static void _S_init_random_seed();
     constexpr static const size_type _s_percentage_base = 100;
     // end with 0
+    double rand_float() { _S_init_random_seed(); return rand(); }
+
     size_type _S_random_unsigned(double _n1, ...);
     size_type _S_random_unsigned(std::initializer_list<double> _il);
     template <size_type _N> size_type _S_random_unsigned(const std::array<double, _N>& _a);
