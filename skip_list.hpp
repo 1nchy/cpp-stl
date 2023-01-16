@@ -464,7 +464,7 @@ std::ostream& operator<<(std::ostream& os, const skip_list<_K, _V, _EK, _UK, _C,
     os << '[';
     for (auto p = _sl.cbegin(); p != _sl.cend();) {
         os << p;
-        if (_sl._log_height) { os << "(" << p._ptr->_height << ")";}
+        if (_sl._log_height && p) { os << "(" << p._ptr->_height << ")";}
         if (++p != _sl.cend()) {
             os << ", ";
         }
