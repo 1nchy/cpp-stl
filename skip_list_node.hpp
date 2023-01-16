@@ -2,6 +2,7 @@
 #define _ASP_SKIP_LIST_NODE_HPP_
 
 #include "basic_param.hpp"
+#include "iterator.hpp"
 #include "node.hpp"
 
 namespace asp {
@@ -28,13 +29,21 @@ template <typename _Value> struct skip_list_node : public node<_Value> {
      * @brief next pointers.
      *   _next[0] is the real next pointer in list, the others are index pointer.
     */
-    self* _next[1] = { nullptr };
+    self* _next[8];
     self* _prev = nullptr;
     size_type _height = 1;
 
     void reset() {
         _prev = nullptr;
         _next[0] = nullptr;
+        _height = 1;
+    }
+    self* _M_next(size_type _i = 0) const {
+        if (_i < _height) { return nullptr; }
+        return _next[_i];
+    }
+    self*& _M_next_ref(size_type _i = 0) {
+        return _next[_i];
     }
 };
 
