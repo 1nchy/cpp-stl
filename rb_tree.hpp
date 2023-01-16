@@ -325,16 +325,14 @@ protected:
     // return _x < _y;
     bool _M_key_compare(const key_type& _x, const key_type& _y) const { return _m_key_compare(_x, _y); }
     /**
-     * @brief find the greatest node (_i) \le than _k in _x subtree. _S_key(_i) <= _k
-     * @return return _y if all nodes are \le than _k
-     * @details not exists _j in subtree(_x), _S_key(_i) < _S_key(_j) <= _k
+     * @brief find the first node (_i) \ge than _k in _x subtree. _S_key(_i) >= _k
+     * @return return _y if all nodes are less than _k
     */
     iterator _M_lower_bound(node_type* _x, node_type* _y, const key_type& _k);
     const_iterator _M_lower_bound(const node_type* _x, const node_type* _y, const key_type& _k) const;
     /**
-     * @brief find the least node (_i) \ge than _k in range _x subtree, _k <= _S_key(_i)
-     * @return return _y if all nodes are \ge than _k
-     * @details not exists _j in subtree(_x), _k <= _S_key(_j) < _S_key(_i)
+     * @brief find the first node (_i) greater than _k in range _x subtree, _k < _S_key(_i)
+     * @return return _y if all nodes are \le than _k
     */
     iterator _M_upper_bound(node_type* _x, node_type* _y, const key_type& _k);
     const_iterator _M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) const;
