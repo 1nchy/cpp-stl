@@ -29,7 +29,7 @@ template <typename _Value> struct skip_list_node : public node<_Value> {
      * @brief next pointers.
      *   _next[0] is the real next pointer in list, the others are index pointer.
     */
-    self* _next[8];
+    self** _next = nullptr;
     self* _prev = nullptr;
     size_type _height = 1;
 

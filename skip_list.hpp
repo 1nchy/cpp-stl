@@ -45,6 +45,8 @@ template <typename _Value, typename _Alloc> struct skip_list_alloc : public _All
     }
     void _M_deallocate_node(node_type* _p) {
         node_allocator_type _node_alloc = _M_get_node_allocator();
+        if (_p->_next != nullptr)
+            _M_deallocate_map(_p->_next, _p->_height);
         node_alloc_traits::destroy(_node_alloc, _p);
         node_alloc_traits::deallocate(_node_alloc, _p, 1);
     }
@@ -67,15 +69,16 @@ template <typename _Value, typename _Alloc> struct skip_list_alloc : public _All
  * // skip list :
  *        begin                                      end
  *   ┌─┐                                             ┌─┐
- *    3          ┌→┐                     
- *    2           →                      ┌→┐        
- *    1           →          ┌→┐          →         
+ *    3          ┌→┐($)                     
+ *    2           → (8)                  ┌→┐($)        
+ *    1           → (5)      ┌→┐(8)       → ($)        
  *    0    ┌→┐    →    ┌→┐    →    ┌→┐    →    ┌→┐  
  *   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘
  *  _mark   1     3     5     5     7     8     9   _mark
  * // skip list
  * 
  * 1. Node height monotonically decreases ↓ when looking up.
+ * 2. The height of node is fixed when it's inserted, and wouldn't change during insertion or deletion of other nodes.
 */
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 class skip_list : public skip_list_alloc<_Value, _Alloc> {
@@ -117,7 +120,7 @@ public:
     template <typename _K, typename _V, typename _EK, bool _UK, typename _C, typename _A>
      friend std::ostream& operator<<(std::ostream& os, const skip_list<_K, _V, _EK, _UK, _C, _A>& _sl);
 public:
-    skip_list() { _M_init_mark(); }
+    skip_list() { _M_set_node_height(&_mark, _S_max_height); _M_init_mark(); }
     virtual ~skip_list();
 
     iterator begin() { return iterator(_M_begin()); }
@@ -173,6 +176,7 @@ protected:
     size_type _M_erase(const key_type& _k);
 
     size_type _M_current_height() const { return _mark._height; }
+    void _M_set_node_height(node_type* const _x, size_type _ht);
 
 private:
     void _M_insert_aux(map_type* _dirty_list, size_type _n, node_type* _x);
@@ -190,7 +194,7 @@ _M_insert_aux(map_type* _dirty_list, size_type _n, node_type* _x) -> void {
     if (node_type* _s_next = _s->_M_next()) {
         _s_next->_prev = _x;
     }
-    _x->_height = _r_level;
+    _M_set_node_height(_x, _r_level);
     for (int _i = 0; _i < _n; ++_i) {
         _x->_next[_i] = _dirty_list[_i]->_next[_i];
         _dirty_list[_i]->_next[_i] = _x;
@@ -393,6 +397,16 @@ _M_erase(const key_type& _k) -> size_type {
     return _cnt;
 };
 
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
+_M_set_node_height(node_type* const _x, size_type _ht) -> void {
+    if (_x->_next != nullptr) {
+        this->_M_deallocate_map(_x->_next, _x->_height);
+    }
+    _x->_next = this->_M_allocate_map(_ht);
+    _x->_height = _ht;
+};
+
 /// skip_list public implement
 // template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 // skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::skip_list() {
@@ -400,7 +414,8 @@ _M_erase(const key_type& _k) -> size_type {
 // }
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::~skip_list() {
-    
+    clear();
+    this->_M_deallocate_map(_mark._next, _S_max_height);
 }
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
