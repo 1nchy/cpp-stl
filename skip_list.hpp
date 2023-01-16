@@ -147,6 +147,8 @@ protected:
     static constexpr const size_type _S_max_height = 8;
     static constexpr const double _S_height_prob = 0.25;
 
+    bool _log_height = true;
+
     void _M_init_mark() { _mark._prev = &_mark; _mark._next[0] = &_mark; _mark._height = 1; }
 
     node_type* _M_begin() { return _mark._next[0]; }
@@ -462,6 +464,7 @@ std::ostream& operator<<(std::ostream& os, const skip_list<_K, _V, _EK, _UK, _C,
     os << '[';
     for (auto p = _sl.cbegin(); p != _sl.cend();) {
         os << p;
+        if (_sl._log_height) { os << "(" << p._ptr->_height << ")";}
         if (++p != _sl.cend()) {
             os << ", ";
         }
