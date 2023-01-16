@@ -98,6 +98,22 @@ template <typename _Tp> struct skip_list_const_iterator {
     template <typename _T> friend std::ostream& operator<<(std::ostream& os, const skip_list_const_iterator<_T>& _sli);
 };
 
+/// output implement
+template <typename _T> std::ostream& operator<<(std::ostream& os, const skip_list_iterator<_T>& _sli) {
+    if (_sli)
+        os << obj_string::_M_obj_2_string(*_sli);
+    else 
+        os << "null";
+    return os;
+}
+template <typename _T> std::ostream& operator<<(std::ostream& os, const skip_list_const_iterator<_T>& _sli) {
+    if (_sli)
+        os << obj_string::_M_obj_2_string(*_sli);
+    else 
+        os << "null";
+    return os;
+}
+
 };
 
 #endif  // _ASP_SKIP_LIST_NODE_HPP_

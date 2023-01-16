@@ -137,8 +137,8 @@ public:
     const_iterator lower_bound(const key_type& _k) const { return _M_lower_bound(_M_begin(), _M_end(), _k); }
     iterator upper_bound(const key_type& _k) { return _M_upper_bound(_M_begin(), _M_end(), _k); }
     const_iterator upper_bound(const key_type& _k) const { return _M_upper_bound(_M_begin(), _M_end(), _k); }
-    std::pair<iterator, iterator> equal_range(const key_type& _k);
-    std::pair<const_iterator, const_iterator> equal_range(const key_type& _k) const;
+    // std::pair<iterator, iterator> equal_range(const key_type& _k);
+    // std::pair<const_iterator, const_iterator> equal_range(const key_type& _k) const;
 
 protected:
     static constexpr const size_type _S_max_height = 8;
@@ -164,20 +164,19 @@ protected:
      * @returns dirty list need to update. %return[0] is the bottom node.
      * @details iterative lookup for a suitble lead node to insert.
     */
-    map_type* _M_insert_position(const key_type& _k);
+    map_type* _M_dirty_list_tok(const key_type& _k);
 
     // @brief unique_insert
     std::pair<iterator, bool> _M_insert(const value_type& _v, asp::true_type);
     // @brief multi_insert
     iterator _M_insert(const value_type& _v, asp::false_type);
-    size_type _M_erase(const_iterator _p);
-    size_type _M_erase(const_iterator _first, const_iterator _last);
+    size_type _M_erase(const key_type& _k);
 
     size_type _M_current_height() const { return _mark._height; }
 
 private:
     void _M_insert_aux(map_type* _dirty_list, size_type _n, node_type* _x);
-    node_type* _M_erase_aux(node_type* const _s);
+    node_type* _M_erase_aux(map_type* _dirty_list, size_type _n, node_type* const _s);
     size_type _M_random_height() const;
 };
 
@@ -203,7 +202,21 @@ _M_insert_aux(map_type* _dirty_list, size_type _n, node_type* _x) -> void {
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
-_M_erase_aux(node_type* const _s) -> node_type* {};
+_M_erase_aux(map_type* _dirty_list, size_type _n, node_type* const _s) -> node_type* {
+    node_type* const _p = _dirty_list[0]->_M_next();
+    for (int _i = 0; _i < _n; ++_i) {
+        if (_dirty_list[_i]->_next[_i] != _p) {
+            break;
+        }
+        _dirty_list[_i]->_next[_i] = _s->_next[_i];
+    }
+    while (_M_current_height() > 0 && !_M_valid_pointer(_mark._next[_M_current_height() - 1])) {
+        --_mark._height;
+    }
+    _s->_next[0]->_prev = _dirty_list[0];
+    _s->_next[0] = nullptr;
+    return _p;
+};
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
 _M_random_height() const -> size_type {
@@ -217,24 +230,91 @@ _M_random_height() const -> size_type {
 /// skip_list protected implement
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
-_M_lower_bound(node_type* _x, node_type* _y, const key_type& _k) -> iterator {};
+_M_lower_bound(node_type* _x, node_type* _y, const key_type& _k) -> iterator {
+    for (int _i = _M_current_height() - 1; _i >= 0; --_i) {
+        while (_M_valid_pointer(_x->_M_next(_i))) {
+            node_type* _n = _x->_M_next(_i);
+            if (!_M_key_compare(_S_key(_n), _k)) { // _k <= _n
+                break;
+            }
+            _x = _n;
+        }
+    }
+    node_type* _n = _x->_M_next();
+    if (_M_valid_pointer(_n) && !_M_key_compare(_k, _S_key(_n))) {
+        return iterator(_n);
+    }
+    else {
+        return iterator(_y);
+    }
+};
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
-_M_lower_bound(const node_type* _x, const node_type* _y, const key_type& _k) const -> const_iterator {};
+_M_lower_bound(const node_type* _x, const node_type* _y, const key_type& _k) const -> const_iterator {
+    for (int _i = _M_current_height() - 1; _i >= 0; --_i) {
+        while (_M_valid_pointer(_x->_M_next(_i))) {
+            node_type* _n = _x->_M_next(_i);
+            if (!_M_key_compare(_S_key(_n), _k)) { // _k <= _n
+                break;
+            }
+            _x = _n;
+        }
+    }
+    node_type* _n = _x->_M_next();
+    if (_M_valid_pointer(_n) && !_M_key_compare(_k, _S_key(_n))) {
+        return const_iterator(_n);
+    }
+    else {
+        return const_iterator(_y);
+    }
+};
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
-_M_upper_bound(node_type* _x, node_type* _y, const key_type& _k) -> iterator {};
+_M_upper_bound(node_type* _x, node_type* _y, const key_type& _k) -> iterator {
+    for (int _i = _M_current_height() - 1; _i >= 0; --_i) {
+        while (_M_valid_pointer(_x->_M_next(_i))) {
+            node_type* _n = _x->_M_next(_i);
+            if (_M_key_compare(_k, _S_key(_n))) { // _k < _n
+                break;
+            }
+            _x = _n;
+        }
+    }
+    node_type* _n = _x->_M_next();
+    if (_M_valid_pointer(_n) && !_M_key_compare(_k, _S_key(_n))) {
+        return iterator(_n);
+    }
+    else {
+        return iterator(_y);
+    }
+};
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
-_M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) const -> const_iterator {};
+_M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) const -> const_iterator {
+    for (int _i = _M_current_height() - 1; _i >= 0; --_i) {
+        while (_M_valid_pointer(_x->_M_next(_i))) {
+            node_type* _n = _x->_M_next(_i);
+            if (_M_key_compare(_k, _S_key(_n))) { // _k < _n
+                break;
+            }
+            _x = _n;
+        }
+    }
+    node_type* _n = _x->_M_next();
+    if (_M_valid_pointer(_n) && !_M_key_compare(_k, _S_key(_n))) {
+        return const_iterator(_n);
+    }
+    else {
+        return const_iterator(_y);
+    }
+};
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
-_M_insert_position(const key_type& _k) -> map_type* {
+_M_dirty_list_tok(const key_type& _k) -> map_type* {
     map_type* _ret = this->_M_allocate_map(_S_max_height);
     difference_type _cnt = 0;
     node_type* _x = &_mark;
-    bool _comp_res;
     for (int _i = _M_current_height() - 1; _i >= 0; --_i) {
         node_type* _n = _x->_M_next(_i);
         while (_M_valid_pointer(_n) && _M_key_compare(_S_key(_n), _k)) {
@@ -248,7 +328,7 @@ template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typ
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
 _M_insert(const value_type& _v, asp::true_type) -> std::pair<iterator, bool> {
     size_type _old_height = _M_current_height();
-    map_type* _res = this->_M_insert_position(_S_key(_v));
+    map_type* _res = this->_M_dirty_list_tok(_S_key(_v));
 
     const node_type* _bottom_node = _res[0];
     if (_M_valid_pointer(_bottom_node)) {
@@ -270,7 +350,7 @@ template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typ
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
 _M_insert(const value_type& _v, asp::false_type) -> iterator {
     size_type _old_height = _M_current_height();
-    map_type* _res = this->_M_insert_position(_S_key(_v));
+    map_type* _res = this->_M_dirty_list_tok(_S_key(_v));
     node_type* _x = this->_M_allocate_node(_v);
     _M_insert_aux(_res, _old_height, _x);
     this->_M_deallocate_map(_res, _old_height);
@@ -278,12 +358,41 @@ _M_insert(const value_type& _v, asp::false_type) -> iterator {
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
-_M_erase(const_iterator _p) -> size_type {};
-template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
-auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
-_M_erase(const_iterator _first, const_iterator _last) -> size_type {};
+_M_erase(const key_type& _k) -> size_type {
+    size_type _old_height = _M_current_height();
+    map_type* _res = this->_M_dirty_list_tok(_k);
+
+    node_type* _bottom_node = _res[0];
+    if (!_M_valid_pointer(_bottom_node)) { this->_M_deallocate_map(_res, _old_height); return 0; }
+    node_type* _s = _bottom_node;
+
+    size_type _cnt = 0;
+    while (_M_valid_pointer(_s->_M_next()) && !_M_key_compare(_k, _S_key(_s->_M_next()))) {
+        ++_cnt;
+        _s = _s->_M_next();
+    }
+    if (_cnt > 0) {
+        node_type* _p = _M_erase_aux(_res, _old_height, _s);
+        while (_p != nullptr) {
+            node_type* _tmp = _p->_M_next();
+            this->_M_deallocate_node(_p);
+            _p = _tmp;
+        }
+    }
+    this->_M_deallocate_map(_res, _old_height);
+    return _cnt;
+};
 
 /// skip_list public implement
+// template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+// skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::skip_list() {
+
+// }
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
+skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::~skip_list() {
+    
+}
+
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::find(const key_type& _k) const -> const_iterator {
     const_iterator _j = _M_lower_bound(_M_begin(), _M_end(), _k);
@@ -292,13 +401,23 @@ skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::find(const key_type
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::count(const key_type& _k) const
 -> size_type {
-    std::pair<const_iterator, const_iterator> _res = equal_range(_k);
-    const size_type _n = asp::distance(_res.first, _res.second);
-    return _n;
+    const_iterator _first(_M_lower_bound(_M_begin(), _M_end(), _k));
+    const_iterator _last(_M_upper_bound(_M_begin(), _M_end(), _k));
+    return asp::distance(_first, _last);
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::clear()
 -> void {
+    if (empty()) return;
+    node_type* _prev = nullptr;
+    node_type* _p = _mark._M_next();
+    for (; _p != nullptr && _p != &_mark;) {
+        _prev = _p;
+        _p = _p->_M_next();
+        this->_M_deallocate_node(_prev);
+    }
+    _M_init_mark();
+    _m_element_count = 0;
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::insert(const value_type& _v)
@@ -308,10 +427,23 @@ skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::insert(const value_
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
 skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::erase(const key_type& _k)
 -> size_type {
-    std::pair<const_iterator, const_iterator> _p = equal_range(_k);
-    return this->_M_erase(_p.first, _p.second);
+    return this->_M_erase(_k);
 };
 
+
+/// output implement
+template <typename _K, typename _V, typename _EK, bool _UK, typename _C, typename _A>
+std::ostream& operator<<(std::ostream& os, const skip_list<_K, _V, _EK, _UK, _C, _A>& _sl) {
+    os << '[';
+    for (auto p = _sl.cbegin(); p != _sl.cend();) {
+        os << p;
+        if (++p != _sl.cend()) {
+            os << ", ";
+        }
+    }
+    os << ']';
+    return os;
+}
 
 };
 
