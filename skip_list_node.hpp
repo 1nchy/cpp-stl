@@ -39,7 +39,7 @@ template <typename _Value> struct skip_list_node : public node<_Value> {
         _height = 1;
     }
     self* _M_next(size_type _i = 0) const {
-        if (_i < _height) { return nullptr; }
+        if (_i >= _height) { return nullptr; }
         return _next[_i];
     }
     self*& _M_next_ref(size_type _i = 0) {

@@ -187,11 +187,15 @@ _M_insert_aux(map_type* _dirty_list, size_type _n, node_type* _x) -> void {
     node_type* const _s = _dirty_list[0];
     size_type _r_level = _M_random_height();
     // _x->_next = this->_M_allocate_map(_r_level);
+    if (node_type* _s_next = _s->_M_next()) {
+        _s_next->_prev = _x;
+    }
     _x->_height = _r_level;
     for (int _i = 0; _i < _n; ++_i) {
         _x->_next[_i] = _dirty_list[_i]->_next[_i];
         _dirty_list[_i]->_next[_i] = _x;
     }
+    _x->_prev = _s;
     if (_r_level > _n) {
         for (int _i = _n; _i < _r_level; ++_i) {
             _x->_next[_i] = _M_end();
@@ -210,7 +214,7 @@ _M_erase_aux(map_type* _dirty_list, size_type _n, node_type* const _s) -> node_t
         }
         _dirty_list[_i]->_next[_i] = _s->_next[_i];
     }
-    while (_M_current_height() > 0 && !_M_valid_pointer(_mark._next[_M_current_height() - 1])) {
+    while (_M_current_height() > 1 && !_M_valid_pointer(_mark._next[_M_current_height() - 1])) {
         --_mark._height;
     }
     _s->_next[0]->_prev = _dirty_list[0];
@@ -316,8 +320,11 @@ _M_dirty_list_tok(const key_type& _k) -> map_type* {
     difference_type _cnt = 0;
     node_type* _x = &_mark;
     for (int _i = _M_current_height() - 1; _i >= 0; --_i) {
-        node_type* _n = _x->_M_next(_i);
-        while (_M_valid_pointer(_n) && _M_key_compare(_S_key(_n), _k)) {
+        while (_M_valid_pointer(_x->_M_next(_i))) {
+            node_type* _n = _x->_M_next(_i);
+            if (!_M_key_compare(_S_key(_n), _k)) {
+                break;
+            }
             _x = _n;
         }
         _ret[_cnt++] = _x;
@@ -343,6 +350,7 @@ _M_insert(const value_type& _v, asp::true_type) -> std::pair<iterator, bool> {
 
     node_type* _x = this->_M_allocate_node(_v);
     _M_insert_aux(_res, _old_height, _x);
+    ++_m_element_count;
     this->_M_deallocate_map(_res, _old_height);
     return std::make_pair(iterator(_x), true);
 };
@@ -353,6 +361,7 @@ _M_insert(const value_type& _v, asp::false_type) -> iterator {
     map_type* _res = this->_M_dirty_list_tok(_S_key(_v));
     node_type* _x = this->_M_allocate_node(_v);
     _M_insert_aux(_res, _old_height, _x);
+    ++_m_element_count;
     this->_M_deallocate_map(_res, _old_height);
     return iterator(_x);
 };
@@ -362,9 +371,9 @@ _M_erase(const key_type& _k) -> size_type {
     size_type _old_height = _M_current_height();
     map_type* _res = this->_M_dirty_list_tok(_k);
 
-    node_type* _bottom_node = _res[0];
-    if (!_M_valid_pointer(_bottom_node)) { this->_M_deallocate_map(_res, _old_height); return 0; }
-    node_type* _s = _bottom_node;
+    node_type* _s = _res[0];
+    if (_s == nullptr) { this->_M_deallocate_map(_res, _old_height); return 0; }
+    // node_type* _s = _bottom_node;
 
     size_type _cnt = 0;
     while (_M_valid_pointer(_s->_M_next()) && !_M_key_compare(_k, _S_key(_s->_M_next()))) {
@@ -379,6 +388,7 @@ _M_erase(const key_type& _k) -> size_type {
             _p = _tmp;
         }
     }
+    _m_element_count -= _cnt;
     this->_M_deallocate_map(_res, _old_height);
     return _cnt;
 };
