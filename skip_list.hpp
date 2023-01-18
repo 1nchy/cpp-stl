@@ -216,19 +216,22 @@ _M_insert_aux(map_type* _dirty_list, size_type _n, node_type* _x) -> void {
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
 _M_erase_aux(map_type* _dirty_list, size_type _n, node_type* const _s) -> node_type* {
-    node_type* const _p = _dirty_list[0]->_M_next();
-    for (int _i = 0; _i < _n; ++_i) {
-        if (_dirty_list[_i]->_next[_i] != _p) {
-            break;
+    node_type* const _p = _dirty_list[0];
+    node_type* const _r = _dirty_list[0]->_M_next();
+    node_type* _rs = _s;
+    for (int _i = 0; _i < _n && _rs != _p; ++_i) {
+        while (_i >= _rs->_height) {
+            _rs = _rs->_prev;
         }
-        _dirty_list[_i]->_next[_i] = _s->_next[_i];
+        _dirty_list[_i]->_next[_i] = _rs->_next[_i];
     }
     while (_M_current_height() > 1 && !_M_valid_pointer(_mark._next[_M_current_height() - 1])) {
         --_mark._height;
+        _mark._next[_mark._height] = nullptr;
     }
     _s->_next[0]->_prev = _dirty_list[0];
     _s->_next[0] = nullptr;
-    return _p;
+    return _r;
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
