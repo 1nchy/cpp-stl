@@ -143,9 +143,12 @@ public:
     // std::pair<iterator, iterator> equal_range(const key_type& _k);
     // std::pair<const_iterator, const_iterator> equal_range(const key_type& _k) const;
 
+    //used for test
+    int check() const;
+
 protected:
     static constexpr const size_type _S_max_height = 8;
-    static constexpr const double _S_height_prob = 0.25;
+    static constexpr const double _S_height_prob = 0.5;
 
     bool _log_height = true;
 
@@ -197,7 +200,7 @@ _M_insert_aux(map_type* _dirty_list, size_type _n, node_type* _x) -> void {
         _s_next->_prev = _x;
     }
     _M_set_node_height(_x, _r_level);
-    for (int _i = 0; _i < _n; ++_i) {
+    for (int _i = 0; _i < std::min(_r_level, _n); ++_i) {
         _x->_next[_i] = _dirty_list[_i]->_next[_i];
         _dirty_list[_i]->_next[_i] = _x;
     }
@@ -455,6 +458,56 @@ template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typ
 skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::erase(const key_type& _k)
 -> size_type {
     return this->_M_erase(_k);
+};
+
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc> auto
+skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::check() const -> int {
+    /**
+     * @returns 0 = normal;
+     * 1 = duplicate value in unique container;
+     * 2 = not in order (store in order could promise that the same value(s) are stored adjacent);
+     * 3 = empty height list (%_mark._next[_i] point to %_mark);
+     * 4 = the number of traversed nodes is not equal to %_element_count;
+     * 5 = node's height is less than current sublist.
+    */
+    size_type _count = 0;
+    std::unordered_set<key_type> _uset;
+    const bool _unique = _UniqueKey;
+    asp::decay_t<key_type> _last_value;
+    size_type _sl_height = this->_M_current_height();
+    for (int _i = 0; _i < _sl_height; ++_i) {
+        node_type* _p = _mark._next[_i];
+        bool _first_elem = true;
+        while (_M_valid_pointer(_p)) {
+            if (_p->_height < _i) {
+                return 5;
+            }
+            const key_type _k = _S_key(_p);
+            ++_count;
+            if (_uset.count(_k)) {
+                if (_unique) {
+                    return 1;
+                }
+            }
+            if (!_first_elem) {
+                if (_M_key_compare(_k, _last_value)) {
+                    return 2;
+                }
+            }
+            _uset.insert(_k);
+            _last_value = _k;
+            _p = _p->_next[_i];
+            _first_elem = false;
+        }
+        if (_i != 0 && _first_elem) {
+            return 3;
+        }
+        if (_i == 0 && _count != _m_element_count) {
+            return 4;
+        }
+        _uset.clear();
+    }
+    return 0;
 };
 
 
