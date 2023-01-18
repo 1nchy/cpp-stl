@@ -322,7 +322,7 @@ _M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) con
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
 _M_dirty_list_tok(const key_type& _k) -> map_type* {
-    map_type* _ret = this->_M_allocate_map(_S_max_height);
+    map_type* _ret = this->_M_allocate_map(_M_current_height());
     difference_type _cnt = 0;
     node_type* _x = &_mark;
     for (int _i = _M_current_height() - 1; _i >= 0; --_i) {
@@ -333,7 +333,7 @@ _M_dirty_list_tok(const key_type& _k) -> map_type* {
             }
             _x = _n;
         }
-        _ret[_cnt++] = _x;
+        _ret[_i] = _x;
     }
     return _ret;
 };
@@ -344,7 +344,7 @@ _M_insert(const value_type& _v, asp::true_type) -> std::pair<iterator, bool> {
     map_type* _res = this->_M_dirty_list_tok(_S_key(_v));
 
     const node_type* _bottom_node = _res[0];
-    if (_M_valid_pointer(_bottom_node)) {
+    if (_bottom_node != nullptr) {
         auto _bottom_next = _bottom_node->_M_next();
         if (_M_valid_pointer(_bottom_next)) {
             if (!_M_key_compare(_S_key(_v), _S_key(_bottom_next))) {
