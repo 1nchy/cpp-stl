@@ -70,9 +70,9 @@ template <typename _Value, typename _Alloc> struct skip_list_alloc : public _All
  *        begin                                      end
  *   ┌─┐                                             ┌─┐
  *    3          ┌→┐($)                     
- *    2           → (8)                  ┌→┐($)        
+ *    2           → (8)                  ┌→┐($)           (sub lists)
  *    1           → (5)      ┌→┐(8)       → ($)        
- *    0    ┌→┐    →    ┌→┐    →    ┌→┐    →    ┌→┐  
+ *    0    ┌→┐    →    ┌→┐    →    ┌→┐    →    ┌→┐        (main list)
  *   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘
  *  _mark   1     3     5     5     7     8     9   _mark
  * // skip list
@@ -168,11 +168,24 @@ protected:
     const_iterator _M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) const;
 
     /**
-     * @brief find a suitable node to insert.
-     * @returns dirty list need to update. %return[0] is the bottom node.
-     * @details iterative lookup for a suitble lead node to insert.
+     * @brief find the shortest path to precessor node of %_k.
+     * @returns dirty list need to update. %return[0] in the main list.
+     * @details 
+     *   the size of %return equals %_M_current_height().
+     *   contains nodes from %_makr, main list and each sub list.
+     *   // the following graph as an example.
+     *   _k = 6, and nodes with asterisk are return values.
+     *   /// === skip list === ///
+     *        begin                                      end
+     *   ┌─┐                                             ┌─┐
+     *    3          ┌→┐*                       
+     *    2           → *                    ┌→┐($)           (sub lists)
+     *    1           →          ┌→┐*         → ($)        
+     *    0    ┌→┐    →    ┌→┐    → *  ┌→┐    →    ┌→┐        (main list)
+     *   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘   └─┘
+     *  _mark   1     3     5     5     7     8     9   _mark
     */
-    map_type* _M_dirty_list_tok(const key_type& _k);
+    map_type* _M_dirty_list_prek(const key_type& _k);
 
     // @brief unique_insert
     std::pair<iterator, bool> _M_insert(const value_type& _v, asp::true_type);
@@ -327,7 +340,7 @@ _M_upper_bound(const node_type* _x, const node_type* _y, const key_type& _k) con
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Comp, typename _Alloc>
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
-_M_dirty_list_tok(const key_type& _k) -> map_type* {
+_M_dirty_list_prek(const key_type& _k) -> map_type* {
     map_type* _ret = this->_M_allocate_map(_M_current_height());
     difference_type _cnt = 0;
     node_type* _x = &_mark;
@@ -347,7 +360,7 @@ template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typ
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
 _M_insert(const value_type& _v, asp::true_type) -> std::pair<iterator, bool> {
     size_type _old_height = _M_current_height();
-    map_type* _res = this->_M_dirty_list_tok(_S_key(_v));
+    map_type* _res = this->_M_dirty_list_prek(_S_key(_v));
 
     const node_type* _bottom_node = _res[0];
     if (_bottom_node != nullptr) {
@@ -370,7 +383,7 @@ template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typ
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
 _M_insert(const value_type& _v, asp::false_type) -> iterator {
     size_type _old_height = _M_current_height();
-    map_type* _res = this->_M_dirty_list_tok(_S_key(_v));
+    map_type* _res = this->_M_dirty_list_prek(_S_key(_v));
     node_type* _x = this->_M_allocate_node(_v);
     _M_insert_aux(_res, _old_height, _x);
     ++_m_element_count;
@@ -381,7 +394,7 @@ template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typ
 auto skip_list<_Key, _Value, _ExtKey, _UniqueKey, _Comp, _Alloc>::
 _M_erase(const key_type& _k) -> size_type {
     size_type _old_height = _M_current_height();
-    map_type* _res = this->_M_dirty_list_tok(_k);
+    map_type* _res = this->_M_dirty_list_prek(_k);
 
     node_type* _s = _res[0];
     if (_s == nullptr) { this->_M_deallocate_map(_res, _old_height); return 0; }
