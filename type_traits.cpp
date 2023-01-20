@@ -111,6 +111,35 @@ public:
 template <bool _b, class _Tp> struct enable_if : public type_constant<void> {};
 template <class _Tp> struct enable_if<true, _Tp> : public type_constant<_Tp> {};
 
+namespace __details__ {
+template <typename _Tp> struct _is_integral_helper;
+template <typename _Tp> struct _is_floating_point_helper;
+
+template <typename _Tp> struct _is_integral_helper : public false_type {};
+template <> struct _is_integral_helper<bool> : public true_type {};
+template <> struct _is_integral_helper<char> : public true_type {};
+template <> struct _is_integral_helper<signed char> : public true_type {};
+template <> struct _is_integral_helper<unsigned char> : public true_type {};
+template <> struct _is_integral_helper<wchar_t> : public true_type {};
+template <> struct _is_integral_helper<char16_t> : public true_type {};
+template <> struct _is_integral_helper<char32_t> : public true_type {};
+template <> struct _is_integral_helper<short> : public true_type {};
+template <> struct _is_integral_helper<unsigned short> : public true_type {};
+template <> struct _is_integral_helper<int> : public true_type {};
+template <> struct _is_integral_helper<unsigned int> : public true_type {};
+template <> struct _is_integral_helper<long> : public true_type {};
+template <> struct _is_integral_helper<unsigned long> : public true_type {};
+template <> struct _is_integral_helper<long long> : public true_type {};
+template <> struct _is_integral_helper<unsigned long long> : public true_type {};
+
+template <typename _Tp> struct _is_floating_point_helper : public false_type {};
+template <> struct _is_floating_point_helper<float> : public true_type {};
+template <> struct _is_floating_point_helper<double> : public true_type {};
+template <> struct _is_floating_point_helper<long double> : public true_type {};
+};
+template <typename _Tp> struct is_integral : __details__::_is_integral_helper<typename asp::remove_cv<_Tp>::type> {};
+template <typename _Tp> struct is_floating_point : __details__::_is_floating_point_helper<typename asp::remove_cv<_Tp>::type> {};
+
 template <typename _Head, typename... _Tail> struct tuple_traits<0, std::tuple<_Head, _Tail...>> {
     typedef _Head type;
 };
