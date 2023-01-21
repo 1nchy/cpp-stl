@@ -89,6 +89,7 @@ template <class _Tp> struct decay;
 template <class _Tp> using decay_t = typename decay<_Tp>::type;
 
 template <bool _b, class _Tp = void> struct enable_if;
+template <bool _b, class _Tp = void> using enable_if_t = typename enable_if<_b, _Tp>::type;
 
 template <typename _Tp> struct is_integral;
 template <typename _Tp> struct is_floating_point;

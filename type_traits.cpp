@@ -108,7 +108,7 @@ public:
     >::type type;
 };
 
-template <bool _b, class _Tp> struct enable_if : public type_constant<void> {};
+template <bool _b, class _Tp> struct enable_if {};
 template <class _Tp> struct enable_if<true, _Tp> : public type_constant<_Tp> {};
 
 namespace __details__ {
