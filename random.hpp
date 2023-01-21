@@ -10,7 +10,7 @@
 #include "log_utils.hpp"
 
 namespace asp {
-    static void _S_init_random_seed();
+    void _S_init_random_seed();
     constexpr static const size_type _s_percentage_base = 100;
     // end with 0
     double rand_float() { _S_init_random_seed(); return (double)rand() / RAND_MAX; }
@@ -66,7 +66,7 @@ namespace asp {
 
 
 /// random seed initialization
-    static void _S_init_random_seed() {
+    void _S_init_random_seed() {
         static bool _seed_inited = false;
         if (!_seed_inited) {
             srand((uint)time(nullptr));
