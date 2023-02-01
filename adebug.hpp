@@ -128,7 +128,8 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
     typedef void (container_type::*push_fptr)(const value_type&);
     typedef void (container_type::*pop_fptr)();
     typedef iterator (container_type::*insert_fptr)(const_iterator, const value_type&);
-    typedef iterator (container_type::*earse_fptr)(const_iterator);
+    typedef iterator (container_type::*erase_fptr)(const_iterator);
+    typedef iterator (container_type::*r_erase_fptr)(const_iterator, const_iterator);
     typedef typename base::size_fptr size_fptr;
 /// (de)constructor
     debug_seq_container() = default;
@@ -142,7 +143,8 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
     push_fptr _push_front = nullptr;
     pop_fptr _pop_front = nullptr;
     insert_fptr _insert = nullptr;
-    earse_fptr _erase = nullptr;
+    erase_fptr _erase = nullptr;
+    r_erase_fptr _range_erase = nullptr;
 
 /// register function
     void _M_reg_push_back(const value_type& _v, bool _log = false);
@@ -151,6 +153,7 @@ template <typename _SeqContainer> struct debug_seq_container : public debug_base
     void _M_reg_pop_front(bool _log = false);
     void _M_reg_insert(const_iterator _i, const value_type& _v, bool _log = false);
     void _M_reg_erase(const_iterator _i, bool _log = false);
+    void _M_reg_erase(const_iterator _f, const_iterator _l, bool _log = false);
 
 /// demo function
     void demo_from_istream(std::istream& _is, bool _log, bool _print_container) override;
@@ -178,7 +181,7 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
 /// container function typedef
     typedef ireturn_type (container_type::*insert_fptr)(const value_type&);
     // typedef ireturn_type (container_type::*set_fptr)(const key_type&, const mapped_type&);
-    typedef size_type (container_type::*earse_fptr)(const key_type&);
+    typedef size_type (container_type::*erase_fptr)(const key_type&);
     // typedef iterator (container_type::*find_fptr)(const key_type&);
     typedef const_iterator (container_type::*find_fptr)(const key_type&) const;
     typedef size_type (container_type::*count_fptr)(const key_type&) const;
@@ -189,7 +192,7 @@ template <typename _AssoContainer> struct debug_asso_container : public debug_ba
 /// member
     insert_fptr _insert = nullptr;
     // set_fptr _set = nullptr;
-    earse_fptr _erase = nullptr;
+    erase_fptr _erase = nullptr;
     find_fptr _find = nullptr;
     count_fptr _count = nullptr;
 
@@ -219,6 +222,7 @@ static void _M_reset_cin(std::istream& _is = std::cin) {
 
 template <typename _C> void debug_base<_C>::demo() {
     std::cout << '[' << typeid(asp::decay_t<_C>).name() << "]:" << std::endl;
+    std::cin.sync_with_stdio(false);
     this->demo_from_istream(std::cin, true, true);
 };
 template <typename _C> void debug_base<_C>::auto_test(const std::string& _str) {
@@ -281,7 +285,21 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
             if (_M_end_of_file(_is)) { break; }
             _i = _M_get_positive_offset(_di, true);
             const_iterator _p = this->_container.cbegin() + _i;
-            this->_M_reg_erase(_p, _log);
+            auto _avail = _is.rdbuf()->in_avail();
+            // std::cout << "rdbuf()->in_avail() = " << _avail << std::endl;
+            if (_avail > 2) {
+                difference_type _last_i;
+                _is >> _last_i;
+                if (!_M_end_of_file(_is)) {
+                    _i = _M_get_positive_offset(_last_i, true);
+                    const_iterator _last = this->_container.cbegin() + _i;
+                    this->_M_reg_erase(_p, _last, _log);
+                }
+            }
+            else {
+                this->_M_reg_erase(_p, _log);
+            }
+            _is.sync_with_stdio();
             if (_log && _print_container) this->_M_print_container();
         }; break;
         case base::__CLEAR__: {
@@ -349,6 +367,11 @@ template <typename _SC> void debug_seq_container<_SC>::init_stream(std::stringst
                 size_type _i;
                 _i = rand() % (this->_container.size() + 1);
                 _is << _i << ' ';
+                _oper = rand() % 7;
+                if (_oper == 0) {
+                    _i += rand() % (this->_container.size() + 1);
+                    _is << _i << ' ';
+                }
             }
         }
         else { // query
@@ -546,6 +569,17 @@ template <typename _C> void debug_seq_container<_C>::_M_reg_erase(const_iterator
             std::cout << "*erase(" << this->_M_string_from_iterator(_i) << ")";
         }
         auto _p = (this->_container.*_erase)(_i);
+        if (_log) {
+            std::cout << " = (" << this->_M_string_from_iterator(_p) << ")" << std::endl;
+        }
+    }
+};
+template <typename _C> void debug_seq_container<_C>::_M_reg_erase(const_iterator _f, const_iterator _l, bool _log) {
+    if (this->_erase != nullptr) {
+        if (_log) {
+            std::cout << "*erase(" << this->_M_string_from_iterator(_f) << ", " << this->_M_string_from_iterator(_l) << ")";
+        }
+        auto _p = (this->_container.*_range_erase)(_f, _l);
         if (_log) {
             std::cout << " = (" << this->_M_string_from_iterator(_p) << ")" << std::endl;
         }
