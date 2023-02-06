@@ -1,6 +1,8 @@
 #ifndef _ASP_TYPE_TRAITS_HPP_
 #define _ASP_TYPE_TRAITS_HPP_
 
+#include "basic_param.hpp"
+
 namespace asp {
 
 template <typename _Tp> struct type_constant;
