@@ -893,6 +893,12 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::_M_rehash_if_requi
         if (_rehash_info.first) {
             this->_M_start_rehash(_rehash_info.second);
         }
+        else if (_rehash_info.second > 0) { // need to resize not rehash
+            this->_M_start_rehash(_rehash_info.second);
+            this->_M_step_rehash(size());
+            this->_M_finish_rehash();
+            return;
+        }
     }
     if (this->_M_in_rehash()) {
         auto _ret = _M_step_rehash();

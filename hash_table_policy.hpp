@@ -153,14 +153,11 @@ size_type rehash_policy::bkt_for_elements(size_type _n) const {
 }
 
 std::pair<bool, size_type> rehash_policy::need_rehash(size_type _n_bkt, size_type _n_elt, size_type _n_ins) const {
-    if (!_enable_rehash) {
-        return std::make_pair(false, 0);
-    }
     if (_n_elt + _n_ins > _next_resize) {
         float _min_bkts = ((float(_n_ins) + float(_n_elt)) / _max_load_factor);
         if (_min_bkts > _n_bkt) {
             _min_bkts = std::max(_min_bkts, float(_s_growth_factor * _n_bkt));
-            return std::make_pair(true, next_bkt(static_cast<size_type>(std::ceil(_min_bkts))));
+            return std::make_pair(_enable_rehash, next_bkt(static_cast<size_type>(std::ceil(_min_bkts))));
         }
         else {
             _next_resize = static_cast<size_type>(std::ceil(_n_bkt * _max_load_factor));
