@@ -30,7 +30,8 @@ _BackwardIterator _A_copy_backward(_InputIterator _first, _InputIterator _last, 
     _BackwardIterator _cur = _res;
     typedef std::allocator_traits<_Allocator> _alloc_traits;
     while (_first != _last) {
-        _alloc_traits::construct(_a, std::addressof(*--_cur), *--_last);
+        --_cur; --_last;
+        _alloc_traits::construct(_a, std::addressof(*_cur), *_last);
     }
     return _cur;
 }
