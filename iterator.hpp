@@ -160,6 +160,9 @@ template <typename _Iterator> difference_type distance(_Iterator first, _Iterato
 template <typename _Iterator> void advance(_Iterator& _p, difference_type _n) {
     _advance(_p, _n, asp::_A_iterator_category(_p));
 }
+template <typename _Iterator> void iter_swap(_Iterator _a, _Iterator _b) {
+    std::swap(*_a, *_b);
+}
 
 
 /// output
