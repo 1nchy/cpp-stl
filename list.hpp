@@ -155,6 +155,18 @@ public:
         _M_init_mark();
         m_element_count = 0;
     }
+    void move_2_front(const_iterator _pos) {
+        node_type* _p = _pos._const_cast()._ptr;
+        if (_p == &mark) return;
+        _p->unhook();
+        _p->hook(mark.next);
+    }
+    void move_2_back(const_iterator _pos) {
+        node_type* _p = _pos._const_cast()._ptr;
+        if (_p == &mark) return;
+        _p->unhook();
+        _p->hook(&mark);
+    }
 
     /// ostream
     template <typename _R> friend std::ostream& operator<<(std::ostream& os, const list<_R>& l) {
