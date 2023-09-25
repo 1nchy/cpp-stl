@@ -8,6 +8,7 @@
 #include <ostream>
 #include <istream>
 #include <sstream>
+#include <vector>
 
 namespace asp {
 // std::ostream& operator<<(std::ostream& os, const std::string& _s) {
