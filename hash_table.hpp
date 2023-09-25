@@ -318,7 +318,7 @@ protected:
      * @brief execute a rehash if necessary.
      * @details function would invalidate iterator, bucket_indx.
      * */
-    void _M_rehash_if_required(size_type _step = 1);
+    void _M_rehash_if_required();
 };
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Hash, typename _Alloc>
@@ -886,7 +886,7 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::_M_step_rehash(siz
     return task_status::__NORMAL__;
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
-hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::_M_rehash_if_required(size_type _step)
+hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::_M_rehash_if_required()
 -> void {
     if (!this->_M_in_rehash()) {    
         auto _rehash_info = this->_M_need_rehash();
