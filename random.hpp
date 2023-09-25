@@ -15,6 +15,7 @@ namespace asp {
     // end with 0
     double rand_float() { _S_init_random_seed(); return (double)rand() / RAND_MAX; }
 
+    size_type _S_random_unsigned(size_type _bound);
     size_type _S_random_unsigned(double _n1, ...);
     size_type _S_random_unsigned(std::initializer_list<double> _il);
     template <size_type _N> size_type _S_random_unsigned(const std::array<double, _N>& _a);
@@ -22,6 +23,10 @@ namespace asp {
 
 
 /// implement
+    size_type _S_random_unsigned(size_type _bound) {
+        _S_init_random_seed();
+        return rand() % _bound;
+    }
     size_type _S_random_unsigned(double _n1, ...) {
         _S_init_random_seed();
         va_list _l;
