@@ -85,9 +85,9 @@ template <typename _Tp> struct list_iterator {
     }
 
     value_type& operator*() { return _ptr->val(); }
-    // const value_type& operator*() const { return _ptr->val(); }
+    const value_type& operator*() const { return _ptr->val(); }
     value_type* operator->() { return _ptr->valptr(); }
-    // const value_type* operator->() const { return _ptr->valptr(); }
+    const value_type* operator->() const { return _ptr->valptr(); }
     self* base() { return this; }
 
     self& operator++() {
