@@ -50,6 +50,18 @@ template <typename _Head, typename _Tail> auto operator<<(std::ostream& os, cons
     return os << '{' << obj_string::_M_obj_2_string(_t.first) << ", " << obj_string::_M_obj_2_string(_t.second) << '}';
 }
 
+template <typename _R> std::ostream& operator<<(std::ostream& os, const std::vector<_R>& v) {
+    os << '[';
+    for (auto p = v.cbegin(); p != v.cend(); ++p) {
+        os << *p;
+        if (p + 1 != v.cend()) {
+            os << ", ";
+        }
+    }
+    os << ']';
+    return os;
+}
+
 
 };
 
