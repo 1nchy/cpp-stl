@@ -24,10 +24,12 @@ template <typename _Tp> struct vector_data {
         }
     vdata& operator=(const vdata& rhs) {
         start = rhs.start; finish = rhs.finish; end_of_storage = rhs.end_of_storage;
+        return *this;
     }
     vdata& operator=(vdata&& rhs) {
         start = rhs.start; finish = rhs.finish; end_of_storage = rhs.end_of_storage;
         rhs.reset();
+        return *this;
     }
 
 
