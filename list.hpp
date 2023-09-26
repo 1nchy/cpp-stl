@@ -58,11 +58,19 @@ public:
         _M_init_mark();
         this->_M_assign(_l);
     }
+    self& operator=(const self& _l) {
+        if (&_l == this) return *this;
+        clear();
+        _M_init_mark();
+        this->_M_assign(_l);
+        return *this;
+    }
     virtual ~list() {
         node_type* p = mark.next;
         while (p != &mark) {
             auto pnext = p->next;
-            delete p;
+            // delete p;
+            this->_M_deallocate_node(p);
             p = pnext;
         }
     };
