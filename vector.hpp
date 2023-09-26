@@ -40,6 +40,23 @@ public:
         this->m_data.finish = _M_uninitialized_copy(std::move(_x).m_data.start, std::move(_x).m_data.finish, this->m_data.finish);
         this->m_data.end_of_storage = this->m_data.start + _x.size();
     }
+    self& operator=(const vector& _x) {
+        if (&_x == this) return *this;
+        const size_type _xlen = _x.size();
+        if (_xlen > capacity()) {
+            pointer _tmp = _M_allocate_copy(_xlen, _x.begin(), _x.end());
+            this->_M_destory(this->m_data.start, this->m_data.finish);
+            this->_M_deallocate(this->m_data.start, this->m_data.end_of_storage - this->m_data.start);
+            this->m_data.start = _tmp;
+            this->m_data.end_of_storage = this->m_data.start + _xlen;
+        }
+        else {
+            this->_M_destory(this->m_data.start, this->m_data.finish);
+            this->_M_uninitialized_copy(_x.m_data.start, _x.m_data.finish, this->m_data.start);
+        }
+        this->m_data.finish = this->m_data.start + _xlen;
+        return *this;
+    }
     // ~vector() {
     //     this->_M_destory(this->m_data.start, this->m_data.finish);
     //     this->_M_deallocate(this->m_data.start, this->m_data.end_of_storage - this->m_data.start);
