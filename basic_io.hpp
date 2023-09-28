@@ -7,6 +7,7 @@
 #include <tuple>
 #include <ostream>
 #include <istream>
+#include <iostream>
 #include <sstream>
 #include <vector>
 
@@ -37,6 +38,13 @@ template<typename _Tuple> struct tuple_print<_Tuple, 1> {
     static void print(const _Tuple& t, std::ostream& os) {
         os << '{' << std::get<0>(t); 
     }
+};
+
+bool _M_end_of_file(std::istream& _is = std::cin) {
+    return _is.eof() || _is.fail();
+};
+void _M_reset_cin(std::istream& _is = std::cin) {
+    _is.clear(); // _is.sync();
 };
 };
 
