@@ -230,7 +230,7 @@ public:
 public:
     hash_table();
     hash_table(const self& _ht);
-    // self& operator=(const self& _r);
+    self& operator=(const self& _r);
     virtual ~hash_table();
     template <typename _NodeGen> void _M_assign(const self& _ht, const _NodeGen&);
 
@@ -338,14 +338,20 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::hash_table(const s
     });
 };
 
-// template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
-// hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::operator=(const self& _r)
-// -> self& {
-//     if (&_r == this) {
-//         return *this;
-//     }
-
-// };
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::operator=(const self& _r)
+-> self& {
+    if (&_r == this) return *this;
+    clear();
+    _M_assign(_r, [this](const node_type* _n) {
+        return this->_M_allocate_node(*_n);
+    });
+    _element_count = _r.size();
+    _rehash_policy = _r._rehash_policy;
+    _bucket_count = _r._bucket_count;
+    _rehash_bucket_count = _r._rehash_bucket_count;
+    return *this;
+};
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Hash, typename _Alloc>
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::~hash_table() {
@@ -365,9 +371,9 @@ _M_assign(const self& _ht, const _NodeGen& _gen) -> void {
         _buckets = _t_buckets = this->_M_allocate_buckets(_ht._bucket_count);
         _rehash_buckets = _t_rehash_buckets = this->_M_allocate_buckets(_ht._rehash_bucket_count);
     }
-    if (_element_count == 0) {
-        return;
-    }
+    // if (_element_count == 0) {
+    //     return;
+    // }
     const_iterator _ht_n = _ht.cbegin();
     node_type* _prev = nullptr;
     for (; _ht_n != _ht.cend(); _ht_n._M_incr()) {
