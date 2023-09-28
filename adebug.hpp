@@ -213,13 +213,6 @@ private:
     value_type _M_get_value_from(std::istream&) const;
 };
 
-static bool _M_end_of_file(std::istream& _is = std::cin) {
-    return _is.eof() || _is.fail();
-};
-static void _M_reset_cin(std::istream& _is = std::cin) {
-    _is.clear(); // _is.sync();
-};
-
 template <typename _C> void debug_base<_C>::demo() {
     std::cout << '[' << typeid(asp::decay_t<_C>).name() << "]:" << std::endl;
     std::cin.sync_with_stdio(false);
@@ -247,12 +240,12 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
     std::string _op;
     while (!_is.eof()) {
         _is >> _op;
-        if (_M_end_of_file(_is)) { break; }
+        if (__details__::_M_end_of_file(_is)) { break; }
         operator_id _id = this->_M_get_operator_id(_op);
         switch (_id) {
         case base::__PUSH_BACK__: {
             _is >> _v;
-            if (_M_end_of_file(_is)) { break; }
+            if (__details__::_M_end_of_file(_is)) { break; }
             this->_M_reg_push_back(_v, _log);
             if (_log && _print_container) this->_M_print_container();
         }; break;
@@ -262,7 +255,7 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
         }; break;
         case base::__PUSH_FRONT__: {
             _is >> _v;
-            if (_M_end_of_file(_is)) { break; }
+            if (__details__::_M_end_of_file(_is)) { break; }
             this->_M_reg_push_front(_v, _log);
             if (_log && _print_container) this->_M_print_container();
         }; break;
@@ -272,9 +265,9 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
         }; break;
         case base::__INSERT__: {
             _is >> _di;
-            if (_M_end_of_file(_is)) { break; }
+            if (__details__::_M_end_of_file(_is)) { break; }
             _is >> _v;
-            if (_M_end_of_file(_is)) { break; }
+            if (__details__::_M_end_of_file(_is)) { break; }
             _i = _M_get_positive_offset(_di, false);
             const_iterator _p = this->_container.cbegin() + _i;
             this->_M_reg_insert(_p, _v, _log);
@@ -282,7 +275,7 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
         }; break;
         case base::__ERASE__: {
             _is >> _di;
-            if (_M_end_of_file(_is)) { break; }
+            if (__details__::_M_end_of_file(_is)) { break; }
             _i = _M_get_positive_offset(_di, true);
             const_iterator _p = this->_container.cbegin() + _i;
             auto _avail = _is.rdbuf()->in_avail();
@@ -290,7 +283,7 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
             if (_avail > 2) {
                 difference_type _last_i;
                 _is >> _last_i;
-                if (!_M_end_of_file(_is)) {
+                if (!__details__::_M_end_of_file(_is)) {
                     _i = _M_get_positive_offset(_last_i, true);
                     const_iterator _last = this->_container.cbegin() + _i;
                     this->_M_reg_erase(_p, _last, _log);
@@ -313,7 +306,7 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
             this->_M_print_container();
         }; break;
         case base::__QUIT__: {
-            _M_reset_cin(_is);
+            __details__::_M_reset_cin(_is);
             return;
         }; break;
         case base::__PAUSE__: {
@@ -322,14 +315,14 @@ template <typename _SC> void debug_seq_container<_SC>::demo_from_istream(std::is
         default: break;
         }
         _op.clear();
-        _M_reset_cin(_is);
+        __details__::_M_reset_cin(_is);
         if (auto _ret = this->_M_reg_check()) {
             ASP_ERR("error(%d) in container.\n", _ret);
             break;
         }
         std::cout << std::flush;
     }
-    _M_reset_cin(_is);
+    __details__::_M_reset_cin(_is);
 };
 template <typename _SC> void debug_seq_container<_SC>::init_stream(std::stringstream& _is, size_type _n) {
     const int _max_key_value = 31;
@@ -389,26 +382,26 @@ template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::i
     std::string _op;
     while (!_is.eof()) {
         _is >> _op;
-        if (_M_end_of_file(_is)) { break; }
+        if (__details__::_M_end_of_file(_is)) { break; }
         operator_id _id = this->_M_get_operator_id(_op);
         switch (_id) {
         case base::__ADD__: {
             value_type _v = this->_M_get_value_from(_is);
-            if (_M_end_of_file(_is)) { break; }
+            if (__details__::_M_end_of_file(_is)) { break; }
             this->_M_reg_insert(_v, _log);
             if (_log && _print_container) this->_M_print_container();
         }; break;
         // case base::__SET__: {
         //     _is >> _k;
-        //     if (_M_end_of_file(_is)) { break; }
+        //     if (__details__::_M_end_of_file(_is)) { break; }
         //     _is >> _m;
-        //     if (_M_end_of_file(_is)) { break; }
+        //     if (__details__::_M_end_of_file(_is)) { break; }
         //     this->_M_reg_set(_k, _m, true);
         //     this->_M_print_container();
         // }; break;
         case base::__DELETE__: {
             _is >> _k;
-            if (_M_end_of_file(_is)) { break; }
+            if (__details__::_M_end_of_file(_is)) { break; }
             this->_M_reg_erase(_k, _log);
             if (_log && _print_container) this->_M_print_container();
         }; break;
@@ -418,12 +411,12 @@ template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::i
         }; break;
         case base::__COUNT__: {
             _is >> _k;
-            if (_M_end_of_file(_is)) { break; }
+            if (__details__::_M_end_of_file(_is)) { break; }
             this->_M_reg_count(_k, _log);
         }; break;
         case base::__FIND__: {
             _is >> _k;
-            if (_M_end_of_file(_is)) { break; }
+            if (__details__::_M_end_of_file(_is)) { break; }
             this->_M_reg_find(_k, _log);
         }; break;
         case base::__SIZE__: {
@@ -433,7 +426,7 @@ template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::i
             this->_M_print_container();
         }; break;
         case base::__QUIT__: {
-            _M_reset_cin(_is);
+            __details__::_M_reset_cin(_is);
             return;
         }; break;
         case base::__PAUSE__: {
@@ -442,14 +435,14 @@ template <typename _AC> void debug_asso_container<_AC>::demo_from_istream(std::i
         default: break;
         }
         _op.clear();
-        _M_reset_cin(_is);
+        __details__::_M_reset_cin(_is);
         if (auto _ret = this->_M_reg_check()) {
             ASP_ERR("error(%d) in container.\n", _ret);
             break;
         }
         std::cout << std::flush;
     }
-    _M_reset_cin(_is);
+    __details__::_M_reset_cin(_is);
 };
 template <typename _AC> void debug_asso_container<_AC>::init_stream(std::stringstream& _is, size_type _n) {
     /**
