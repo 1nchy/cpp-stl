@@ -9,9 +9,9 @@ namespace asp {
 template <typename _Key, typename _Tp,
  typename _Hash = std::hash<_Key>,
  typename _Alloc = std::allocator<std::pair<const _Key, _Tp>>
-> struct lru;
+> class lru;
 
-namespace __details__ {
+namespace {
 struct _select_key_from_list_node {
     // _Tp == list_t::iterator
     template <typename _Tp> auto operator()(_Tp&& _x) const {
@@ -28,7 +28,7 @@ class lru {
     typedef list<std::pair<const _Key, _Tp>, _Alloc> list_t;
     typedef typename list_t::node_type node_type;
     typedef typename list_t::iterator iterator;
-    typedef hash_table<_Key, iterator, __details__::_select_key_from_list_node, true, _Hash, _Alloc> hash_table_t;
+    typedef hash_table<_Key, iterator, _select_key_from_list_node, true, _Hash, _Alloc> hash_table_t;
 
     list_t _l;
     hash_table_t _h;
