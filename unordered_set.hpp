@@ -16,7 +16,7 @@ template <typename _Tp,
 template <typename _Tp, typename _Hash, typename _Alloc>
 class unordered_set {
     typedef unordered_set<_Tp, _Hash, _Alloc> self;
-    typedef hash_table<_Tp, _Tp, _select_self, true, _Hash, _Alloc> uset_ht;
+    typedef hash_table<_Tp, _Tp, _select_self, true, _select_self, _Hash, _Alloc> uset_ht;
     uset_ht _h;
 public:
     typedef typename uset_ht::key_type key_type;

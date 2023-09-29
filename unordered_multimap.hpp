@@ -16,7 +16,7 @@ template <typename _Key, typename _Tp,
 template <typename _Key, typename _Tp, typename _Hash, typename _Alloc>
 class unordered_multimap {
     typedef unordered_multimap<_Key, _Tp, _Hash, _Alloc> self;
-    typedef hash_table<_Key, std::pair<const _Key, _Tp>, _select_0x, false, _Hash, _Alloc> ummap_ht;
+    typedef hash_table<_Key, std::pair<const _Key, _Tp>, _select_0x, false, _select_1x_ref, _Hash, _Alloc> ummap_ht;
     ummap_ht _h;
 public:
     typedef typename ummap_ht::key_type key_type;

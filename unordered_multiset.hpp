@@ -16,7 +16,7 @@ template <typename _Tp,
 template <typename _Tp, typename _Hash, typename _Alloc>
 class unordered_multiset {
     typedef unordered_multiset<_Tp, _Hash, _Alloc> self;
-    typedef hash_table<_Tp, _Tp, _select_self, false, _Hash, _Alloc> umset_ht;
+    typedef hash_table<_Tp, _Tp, _select_self, false, _select_self, _Hash, _Alloc> umset_ht;
     umset_ht _h;
 public:
     typedef typename umset_ht::key_type key_type;

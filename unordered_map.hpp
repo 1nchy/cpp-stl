@@ -16,7 +16,7 @@ template <typename _Key, typename _Tp,
 template <typename _Key, typename _Tp, typename _Hash, typename _Alloc>
 class unordered_map {
     typedef unordered_map<_Key, _Tp, _Hash, _Alloc> self;
-    typedef hash_table<_Key, std::pair<const _Key, _Tp>, _select_0x, true, _Hash, _Alloc> umap_ht;
+    typedef hash_table<_Key, std::pair<const _Key, _Tp>, _select_0x, true, _select_1x_ref, _Hash, _Alloc> umap_ht;
     umap_ht _h;
 public:
     typedef typename umap_ht::key_type key_type;
