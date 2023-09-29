@@ -19,13 +19,12 @@ template <typename _Tp> struct list_node : public node<_Tp> {
     list_node(const value_type& n): node<value_type>(n) {}
     list_node(const lnode& rhs): node<value_type>(rhs), prev(rhs.prev), next(rhs.next) {}
     list_node(lnode&& rhs): node<value_type>(std::move(rhs)), prev(rhs.prev), next(rhs.next) {}
-    virtual lnode& operator=(const lnode& rhs) {
-        node<value_type>::operator=(rhs);
+    lnode& operator=(const lnode& rhs) {
         prev = rhs.prev;
         next = rhs.next;
         return *this;
     }
-    virtual lnode& operator=(lnode&& rhs) {
+    lnode& operator=(lnode&& rhs) {
         node<value_type>::operator=(std::move(rhs));
         prev = rhs.prev;
         next = rhs.next;
