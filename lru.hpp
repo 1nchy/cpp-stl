@@ -3,6 +3,7 @@
 
 #include "hash_table.hpp"
 #include "list.hpp"
+#include <unordered_map>
 
 namespace asp {
 
