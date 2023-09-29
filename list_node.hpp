@@ -75,6 +75,7 @@ template <typename _Tp> struct list_iterator {
     list_iterator(lnode* n): _ptr(n) {}
     list_iterator(const self& rhs): _ptr(rhs._ptr) {}
     self& operator=(const self& rhs) {
+        if (&rhs == this) return *this;
         _ptr = rhs._ptr;
         return *this;
     }
@@ -148,7 +149,9 @@ template <typename _Tp> struct list_const_iterator {
     list_const_iterator(const self& rhs): _ptr(rhs._ptr) {}
     list_const_iterator(const iterator& rhs): _ptr(rhs._ptr) {}
     self& operator=(const self& rhs) {
+        if (&rhs == this) return *this;
         _ptr = rhs._ptr;
+        return *this;
     }
 
     iterator _const_cast() const {
