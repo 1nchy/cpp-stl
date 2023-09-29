@@ -248,6 +248,7 @@ public:
     void clear();
     ireturn_type insert(const value_type& _v);
     size_type erase(const key_type& _k);
+    mapped_type& operator[](const key_type& _k);
 
     // used for test
     int check() const;
@@ -762,6 +763,19 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::erase(const key_ty
     _M_rehash_if_required();
 
     return this->_M_erase(_k, asp::bool_t<_UniqueKey>());
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::operator[](const key_type& _k)
+-> mapped_type& {
+    hash_code _c = this->_M_hash_code(_k);
+    const bucket_index _i = this->_M_bucket_find_index(_k, _c);
+    node_type* _p = this->_M_find_node(_i, _k, _c);
+    if (_p == nullptr) {
+        const bucket_index _ii = this->_M_bucket_insert_index(_c);
+        _p = this->_M_allocate_node(std::piecewise_construct, std::tuple<const key_type&>(_k), std::tuple<>());
+        return this->_M_insert_unique_node(_ii, _c, _p)->second;
+    }
+    return _p->val().second;
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _Hash, _Alloc>::check() const
