@@ -959,8 +959,8 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_step
     if (!this->_M_in_rehash()) { return task_status::__FAILED__; }
     if (!this->_M_valid_bucket_index(_rehash_policy._cur_process)) { return task_status::__FAILED__; }
     if (_rehash_policy._cur_process.first != 0) { return task_status::__FAILED__; }
-    const bucket_index _i = _rehash_policy._cur_process;
     while (_step--) {
+        const bucket_index _i = _rehash_policy._cur_process;
         for (node_type* _hint = this->_M_bucket(_i); _hint != nullptr;) {
             node_type* _next_hint = _hint->_next;
             // move %_hint to %_rehash_buckets
