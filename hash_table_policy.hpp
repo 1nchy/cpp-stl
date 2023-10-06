@@ -96,6 +96,7 @@ template <typename _Tp> struct hash_node : public node<_Tp> {
 
 template <typename _Value, typename _Alloc> struct hash_table_alloc : public _Alloc {
     typedef hash_node<_Value> node_type;
+    typedef typename node_type::value_type value_type;
     typedef typename node_type::bucket_type bucket_type;
     typedef _Alloc elt_allocator_type;
     typedef std::allocator_traits<elt_allocator_type> elt_alloc_traits;

@@ -233,6 +233,7 @@ public:
 
 public:
     hash_table();
+    hash_table(bool _rehash_enabled);
     hash_table(const self& _ht);
     self& operator=(const self& _r);
     virtual ~hash_table();
@@ -301,6 +302,11 @@ protected:
     // find node whose %_next = {_k, _c} in _bucket[_i], only used in multi-insert and erase
     node_type* _M_find_before_node(const bucket_index& _i, const key_type& _k, hash_code _c) const;
 
+    bool _M_valid_bucket_index_unguard(const bucket_index& _i) const;
+    bucket_type _M_bucket_unguard(const bucket_index& _i) const;
+    // find node {_k, _c} in _bucket[_i], recommended to use only in rehash
+    node_type* _M_find_node_unguard(const bucket_index& _i, const key_type& _k, hash_code _c) const;
+
     void _M_insert_bucket_begin(const bucket_index& _i, node_type* _n);
     void _M_remove_bucket_begin(const bucket_index& _i);
 
@@ -319,18 +325,25 @@ protected:
     /// rehash policy
     std::pair<bool, size_type> _M_need_rehash(size_type _ins = 1) const { return this->_rehash_policy.need_rehash(_bucket_count, _element_count, _ins); }
     bool _M_in_rehash() const { return this->_rehash_policy._in_rehash; }
-    void _M_start_rehash(size_type _next_bkt);
-    void _M_finish_rehash();
-    task_status _M_step_rehash(size_type _step = 1);
+    virtual void _M_start_rehash(size_type _next_bkt);
+    virtual void _M_finish_rehash();
+    virtual task_status _M_step_rehash(size_type _step = 1);
     /**
      * @brief execute a rehash if necessary.
      * @details function would invalidate iterator, bucket_indx.
      * */
-    void _M_rehash_if_required();
+    virtual void _M_rehash_if_required();
 };
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc>
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::hash_table() {
+    size_type _s = _prime_list[0];
+    this->_buckets = this->_M_allocate_buckets(_s);
+    this->_bucket_count = _s;
+};
+
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc>
+hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::hash_table(bool _rehash_enabled) : _rehash_policy(_rehash_enabled) {
     size_type _s = _prime_list[0];
     this->_buckets = this->_M_allocate_buckets(_s);
     this->_bucket_count = _s;
@@ -534,6 +547,46 @@ _M_find_before_node(const bucket_index& _i, const key_type& _k, hash_code _c) co
     return nullptr;
 };
 
+/// unguard function, recommend to use only in rehash
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_valid_bucket_index_unguard(const bucket_index& _i) const
+-> bool {
+    if (_i.first == 0) {
+        return _i.second >= 0 && _i.second < this->_bucket_count;
+    }
+    if (_i.first == 1) {
+        return _i.second >= 0 && _i.second < this->_rehash_bucket_count;
+    }
+    return false;
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_bucket_unguard(const bucket_index& _i) const
+-> bucket_type {
+    if (!_M_valid_bucket_index_unguard(_i)) {
+        return nullptr;
+    }
+    if (_i.first == 1) {
+        return this->_rehash_buckets[_i.second];
+    }
+    else if (_i.first == 0) {
+        return this->_buckets[_i.second];
+    }
+    return nullptr;
+};
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::
+_M_find_node_unguard(const bucket_index& _i, const key_type& _k, hash_code _c) const
+-> node_type* {
+    node_type* _p = this->_M_bucket_unguard(_i);
+    if (_p == nullptr) return nullptr;
+    for (; _p != nullptr; _p = _p->_next) {
+        if (this->_M_equals(_k, _c, _p)) {
+            return _p;
+        }
+    }
+    return nullptr;
+};
+
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::
 _M_insert_bucket_begin(const bucket_index& _i, node_type* _n)
@@ -714,7 +767,7 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_upda
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::find(const key_type& _k)
 -> iterator {
-    _M_rehash_if_required();
+    this->_M_rehash_if_required();
 
     hash_code _c = this->_M_hash_code(_k);
     const bucket_index _i = this->_M_bucket_find_index(_k, _c);
@@ -758,7 +811,7 @@ template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typ
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::clear()
 -> void {
     // if in rehash, stop rehash force, which would destroy the data.
-    if (_M_in_rehash()) { _M_finish_rehash(); }
+    if (_M_in_rehash()) { this->_M_finish_rehash(); }
 
     for (bucket_index _i(0, 0); this->_M_valid_bucket_index(_i); this->_M_next_bucket_index(_i)) {
         for (node_type* _p = this->_M_bucket(_i); _p != nullptr;) {
@@ -773,14 +826,14 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::clear()
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::insert(const value_type& _v)
 -> ireturn_type {
-    _M_rehash_if_required();
+    this->_M_rehash_if_required();
 
     return this->_M_insert(_v, asp::bool_t<_UniqueKey>());
 };
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::erase(const key_type& _k)
 -> size_type {
-    _M_rehash_if_required();
+    this->_M_rehash_if_required();
 
     return this->_M_erase(_k, asp::bool_t<_UniqueKey>());
 };
@@ -800,7 +853,7 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::operato
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::update(const value_type& _v)
 -> iterator {
-    _M_rehash_if_required();
+    this->_M_rehash_if_required();
 
     return this->_M_update(_v, asp::bool_t<_UniqueKey>());
 };
@@ -949,7 +1002,7 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_reha
         }
     }
     if (this->_M_in_rehash()) {
-        auto _ret = _M_step_rehash();
+        auto _ret = this->_M_step_rehash();
         if (_ret == task_status::__COMPLETED__) {
             this->_M_finish_rehash();
         }
