@@ -27,9 +27,10 @@ extern const unsigned long _prime_list[] = {
 
 struct rehash_policy {
     typedef size_type _State;
+    typedef short bucket_id;
     // (0, x) indicates _buckets[x]
     // (1, y) indicates _rehash_buckets[y]
-    typedef std::pair<short, size_type> bucket_index;
+    typedef std::pair<bucket_id, size_type> bucket_index;
 
     rehash_policy(float _z = 1.0) : _max_load_factor(_z) {}
     rehash_policy(bool _enable) : _enable_rehash(_enable) {}

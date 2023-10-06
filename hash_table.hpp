@@ -212,6 +212,7 @@ public:
     typedef typename _ContainerTypeTraits::mapped_type mapped_type;
 
     typedef rehash_policy::bucket_index bucket_index;
+    typedef rehash_policy::bucket_id bucket_id;
     static const bucket_index _s_illegal_index;
 
     bucket_type* _buckets = nullptr;
@@ -264,6 +265,7 @@ protected:
         base::_M_deallocate_buckets(_buckets, _bucket_count);
         base::_M_deallocate_buckets(_rehash_buckets, _rehash_bucket_count);
     }
+    void _M_clear_bucket(bucket_type* const _b);
 
     bucket_index _M_begin() const {
         bucket_index _i(0, 0);
@@ -302,6 +304,7 @@ protected:
     // find node whose %_next = {_k, _c} in _bucket[_i], only used in multi-insert and erase
     node_type* _M_find_before_node(const bucket_index& _i, const key_type& _k, hash_code _c) const;
 
+    void _M_next_bucket_index_unguard(bucket_index& _i) const;
     bool _M_valid_bucket_index_unguard(const bucket_index& _i) const;
     bucket_type _M_bucket_unguard(const bucket_index& _i) const;
     // find node {_k, _c} in _bucket[_i], recommended to use only in rehash
@@ -310,7 +313,9 @@ protected:
     void _M_insert_bucket_begin(const bucket_index& _i, node_type* _n);
     void _M_remove_bucket_begin(const bucket_index& _i);
 
+    // insert allocated and constructed _n into _bucket[_i]
     iterator _M_insert_unique_node(const bucket_index& _i, hash_code _c, node_type* _n);
+    // insert allocated and constructed _n into _bucket[_i]
     iterator _M_insert_multi_node(const bucket_index& _i, hash_code _c, node_type* _n);
     /// implement
     iterator _M_insert_unique(const value_type& _v);
@@ -409,6 +414,21 @@ _M_assign(const self& _ht, const _NodeGen& _gen) -> void {
     }
 };
 
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_clear_bucket(bucket_type* const _b) -> void {
+    bucket_id _bid = -1;
+    if (_b == _buckets) _bid = 0;
+    else if (_b == _rehash_buckets) _bid = 1;
+    else return;
+    for (bucket_index _i(_bid, 0); this->_M_valid_bucket_index_unguard(_i) && _i.first == _bid; this->_M_next_bucket_index_unguard(_i)) {
+        for (node_type* _p = this->_M_bucket_unguard(_i); _p != nullptr;) {
+            node_type* const _tmp = _p->_next;
+            this->_M_deallocate_node(_p);
+            _p = _tmp;
+        }
+        this->_M_bucket_ref(_i) = nullptr;
+    }
+};
 
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_hash_code(const key_type& _k) const
@@ -548,6 +568,24 @@ _M_find_before_node(const bucket_index& _i, const key_type& _k, hash_code _c) co
 };
 
 /// unguard function, recommend to use only in rehash
+template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
+hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_next_bucket_index_unguard(bucket_index& _i) const
+-> void {
+    if (!_M_valid_bucket_index_unguard(_i)) {
+        _i = _s_illegal_index; return;
+    }
+    do {
+        ++_i.second;
+        if (_i.first == 0 && _i.second >= this->_bucket_count) {
+            _i.first = 1; _i.second = 0;
+        }
+        // if %_i.first == 1, then %_M_in_rehash() = true
+        if (_i.first == 1 && _i.second >= this->_rehash_bucket_count) {
+            _i.first = -1; _i.second = 0;
+            break;
+        }
+    } while (this->_M_bucket_unguard(_i) == nullptr);
+};
 template <typename _Key, typename _Value, typename _ExtKey, bool _UniqueKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
 hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_valid_bucket_index_unguard(const bucket_index& _i) const
 -> bool {
@@ -949,6 +987,8 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_fini
     std::swap(_buckets, _rehash_buckets);
     std::swap(_bucket_count, _rehash_bucket_count);
 
+    if (!_rehash_policy._enable_rehash)
+        this->_M_clear_bucket(_rehash_buckets);
     base::_M_deallocate_buckets(_rehash_buckets, _rehash_bucket_count);
     _rehash_buckets = nullptr;
     _rehash_bucket_count = 0;
@@ -976,8 +1016,10 @@ hash_table<_Key, _Value, _ExtKey, _UniqueKey, _ExtValue, _Hash, _Alloc>::_M_step
 #else
             _M_insert_bucket_begin(_insert_i, _hint); // error
 #endif // _HASH_TABLE_ADJACENT_SAME_VALUE_
+            // this->_M_deallocate_node(_hint);  // we can't deallocate node here !!!
             _hint = _next_hint;
         }
+        // we've **moved** all nodes in _M_bucket[_i] to _rehash_bucket
         this->_M_bucket_ref(_i) = nullptr;
         this->_M_next_bucket_index(_rehash_policy._cur_process);
         if (this->_M_valid_bucket_index(_rehash_policy._cur_process) && _rehash_policy._cur_process.first == 1) {
