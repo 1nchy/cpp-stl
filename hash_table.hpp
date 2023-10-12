@@ -256,6 +256,7 @@ public:
     size_type erase(const key_type& _k);
     mapped_type& operator[](const key_type& _k);
     iterator update(const value_type& _v);
+    hash_code _M_hash_code(const key_type& _k) const;
 
     // used for test
     int check() const;
@@ -275,7 +276,6 @@ protected:
         }
         return _i;
     }
-    hash_code _M_hash_code(const key_type& _k) const;
     bool _M_equals(const key_type& _k, hash_code _c, const node_type* _p) const;
 
     bool _M_valid_bucket_index(const bucket_index& _i) const;
