@@ -14,22 +14,6 @@ template <typename _Tp> using uf_node = short_tree_node<_Tp>;
 struct _select_node_value;
 
 namespace {
-// struct _select_ufnode {
-//     template <typename _Tp> auto operator()(uf_node<_Tp>&& _x) const {
-//         return _x.val();
-//     }
-//     template <typename _Tp> auto operator()(const uf_node<_Tp>& _x) const {
-//         return _x.val();
-//     }
-//     template <typename _Tp> auto operator()(uf_node<_Tp>& _x) const {
-//         return _x.val();
-//     }
-// };
-// struct _select_ufnode_ref {
-//     template <typename _Tp> auto& operator()(_Tp&& _x) const {
-//         return std::forward<_Tp>(*_x);
-//     }
-// };
 template <typename _ExtOp> struct _select_ufnode_action {
     template <typename _Tp> auto operator()(uf_node<_Tp>* _x) const {
         // return _ExtOp()(_select_ufnode()(*_x));
@@ -128,12 +112,13 @@ public:
     std::pair<bool, hash_code> delegate_id(const key_type& _k) const;
     std::pair<bool, hash_code> delegate_id(node_t* const _n) const;
     std::pair<bool, hash_code> delegate_id(const tree_t& _t) const;
-    size_type _count() const { return _sth.size(); }
+    size_type count() const { return _sth.size(); }
     bool sibling(const key_type& _x, const key_type& _y);
     void add(const value_type& _v);
     bool add(const key_type& _k, const value_type& _v);
     bool del(const key_type& _k);
     bool merge(const key_type& _x, const key_type& _y);
+    bool elect(const key_type& _k);
 
 // check function
     int check() const;
@@ -218,51 +203,18 @@ uf_table<_Key, _Value, _ExtKey, _ExtValue, _Hash, _Alloc>::merge(const key_type&
     _M_update_tree_info(_ytc, _yt);
     return true;
 };
+template <typename _Key, typename _Value, typename _ExtKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
+uf_table<_Key, _Value, _ExtKey, _ExtValue, _Hash, _Alloc>::elect(const key_type& _k) -> bool {
+    if (!existed(_k)) return false;
+    node_t* _n = *(_h.find(_k));
+    tree_t& _t = *delegate(_n);
+    hash_code _oc = delegate_id(_t).second;
+    _t.elect(_n);
+    _M_update_tree_info(_oc, _t);
+    return true;
+};
 
-// template <typename _Key, typename _Value, typename _ExtKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
-// uf_table<_Key, _Value, _ExtKey, _ExtValue, _Hash, _Alloc>::_M_finish_rehash() -> void {
-//     this->_rehash_policy._in_rehash = false;
-//     this->_rehash_policy._cur_process = base::_s_illegal_index;
-//     if (this->_rehash_buckets == nullptr) {
-//         this->_rehash_bucket_count = 0;
-//         return;
-//     }
-//     // this->_M_remap();
-//     std::swap(this->_buckets, this->_rehash_buckets);
-//     std::swap(this->_bucket_count, this->_rehash_bucket_count);
-
-//     // this->_M_clear_bucket(this->_rehash_buckets);
-//     base::base::_M_deallocate_buckets(this->_rehash_buckets, this->_rehash_bucket_count);
-//     this->_rehash_buckets = nullptr;
-//     this->_rehash_bucket_count = 0;
-// };
-
-// template <typename _Key, typename _Value, typename _ExtKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
-// uf_table<_Key, _Value, _ExtKey, _ExtValue, _Hash, _Alloc>::_M_remap() -> void {
-//     // index in %_rehash_buckets
-//     for (size_type _ir = 0; _ir < this->_rehash_bucket_count; ++_ir) {
-//         if (this->_rehash_buckets[_ir] == nullptr) continue;
-//         // node in %_rehash_buckets
-//         for (node_type* _nr = this->_rehash_buckets[_ir]; _nr != nullptr; _nr = _nr->_next) {
-//             const key_type& _k = this->_extract_key(_nr->val());
-//             const hash_code _c = _nr->_hash_code;
-//             bucket_index _i = std::make_pair(0, _c % this->_bucket_count);
-//             node_type* _n = this->_M_find_node_unguard(_i, _k, _c);
-//             assert(_n != nullptr);
-//             uf_node_t& _d = _n->val().delegate();
-//             const key_type& _kd = this->_extract_key(_d);
-//             const hash_code _cd = this->_M_hash_code(_kd);
-//             bucket_index _id = std::make_pair(1, _cd % this->_rehash_bucket_count);
-//             node_type* _nd = this->_M_find_node_unguard(_id, _kd, _cd);
-//             _nr->val().elect(_nd->val());
-//         }
-//     }
-// };
-
-// template <typename _Key, typename _Value, typename _ExtKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
-// uf_table<_Key, _Value, _ExtKey, _ExtValue, _Hash, _Alloc>::_M_remove(const key_type& _k) -> void {
-//     this->_M_erase(_k, true_type());
-// };
+/// protected implementation
 template <typename _Key, typename _Value, typename _ExtKey, typename _ExtValue, typename _Hash, typename _Alloc> auto
 uf_table<_Key, _Value, _ExtKey, _ExtValue, _Hash, _Alloc>::_M_update_tree_info(hash_code _oc, tree_t& _t) -> void {
     if (_t.empty()) {
