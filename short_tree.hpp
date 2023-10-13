@@ -168,6 +168,7 @@ public:
     // merge %_r, and make it 1st level child node
     void merge(self& _r);
     void clear();
+    void elect(node_type* _e);
     int check() const;
     static node_type* query (node_type* _x);
 protected:
@@ -351,7 +352,8 @@ short_tree<_Tp, _Alloc>::_M_depose_child(node_type* _x) -> node_type* {
     node_type* const _p = _x->_parent; // _p != nullptr
     if (_p->_first_child == _x) _p->_first_child = _x->_right_bro;
     else _x->_left_bro->_right_bro = _x->_right_bro;
-    if (_p->_last_child = _x) _p->_last_child = nullptr;
+    if (_p->_last_child == _x) _p->_last_child = nullptr;
+    else _x->_right_bro->_left_bro = _x->_left_bro;
     if (_x == root()) _p->_parent = nullptr;
     return _x->_right_bro;
 };
@@ -592,6 +594,11 @@ short_tree<_Tp, _Alloc>::clear() -> void {
     _M_erase_subtree(root());
     _m_impl.reset();
 };
+template <typename _Tp, typename _Alloc> auto
+short_tree<_Tp, _Alloc>::elect(node_type* _e) -> void {
+    if (_e == root()) nullptr;
+    _M_swap_node_value(_e, root());
+};
 
 /// static implementation
 template <typename _Tp, typename _Alloc> auto
@@ -609,6 +616,7 @@ short_tree<_Tp, _Alloc>::query(node_type* _x) -> node_type* {
  * @returns 0 : normal
  *   1 : the parent of node's children isn't itself
  *   2 : node has some other children which not in fl range
+ *       (children link doesn't start with parent's first_child and end up with parent's last_child)
  *   3 : the number of nodes inequal %size()
  *   4 : error in %_header
  *   5 : error in %_header when empty
