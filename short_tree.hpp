@@ -186,7 +186,7 @@ protected:
 
     node_type* _M_first_descendant(node_type* _p) const;
     void _M_append_tail(node_type* _x, node_type* _p = nullptr);
-    void _M_append_tail(node_type* _first, node_type* _last, node_type* _p = nullptr);
+    void _M_append_tail(node_type* _first, node_type* _last, node_type* _p);
     /**
      * @details unhook %_p from its %_parent and %_left_bro, and update them
      * @return %_x->_parent->_last_child
@@ -308,7 +308,7 @@ short_tree<_Tp, _Alloc>::_M_append_tail(node_type* _x, node_type* _p) -> void {
     if (_p == nullptr) _p = root();
     assert(_p != nullptr);
     if (_x == nullptr) return;
-    _x->unhook();
+    // _x->unhook();
     node_type* const _tail = _p->_last_child;
     _x->_left_bro = _tail;
     if (_tail != nullptr) _tail->_right_bro = _x;
@@ -581,8 +581,7 @@ short_tree<_Tp, _Alloc>::merge(self& _r) -> void {
     }
     else {
         node_type* const _p = _r.root();
-        // todo : this->root() == nullptr
-        _M_append_tail(_p->_first_child, _p->_last_child, root());
+        // _M_append_tail(_p->_first_child, _p->_last_child, root());
         _M_append_tail(_p);
     }
     _m_impl._node_count += _r.size();
