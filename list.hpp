@@ -5,6 +5,8 @@
 
 #include "list_node.hpp"
 
+#include "basic_io.hpp"
+
 namespace asp {
 template <typename _Tp, typename _Alloc = std::allocator<_Tp>> class list;
 template <typename _Tp, typename _Alloc = std::allocator<_Tp>> struct list_alloc;
