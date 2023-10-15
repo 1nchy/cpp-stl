@@ -16,7 +16,7 @@ template <typename _Key, typename _Value, typename _ExtKey, typename _ExtValue,
 > struct lru_table;
 
 namespace {
-template <typename _ExtOp> struct _select_list_iter_action {
+template <typename _ExtOp> struct _select_lru_iter_action {
     // _Tp == list_t::iterator
     template <typename _Iter> auto operator()(_Iter _x) const {
         return _ExtOp()(*_x);
@@ -32,7 +32,7 @@ struct lru_table {
     typedef list<_Value, _Alloc> list_t;
     typedef typename list_t::node_type node_type;
     typedef typename list_t::iterator iterator;
-    typedef hash_table<_Key, iterator, _select_list_iter_action<_ExtKey>, true, _select_list_iter_action<_ExtValue>, _Hash, _Alloc> hash_table_t;
+    typedef hash_table<_Key, iterator, _select_lru_iter_action<_ExtKey>, true, _select_lru_iter_action<_ExtValue>, _Hash, _Alloc> hash_table_t;
     typedef asso_container::type_traits<_Value, true> _ContainerTypeTraits;
     typedef typename _ContainerTypeTraits::mapped_type mapped_type;
 
@@ -149,6 +149,7 @@ lru_table<_Key, _Value, _ExtKey, _ExtValue, _Hash, _Alloc>::demo(std::istream& _
     std::string _op;
     key_type _k;
     value_type _v;
+    mapped_type _m;
     size_type _n;
     while (!_is.eof()) {
         _is >> _op;
@@ -171,9 +172,9 @@ lru_table<_Key, _Value, _ExtKey, _ExtValue, _Hash, _Alloc>::demo(std::istream& _
         case __PUT__: {
             _is >> _k;
             if (__details__::_M_end_of_file(_is)) break;
-            _is >> _v;
+            _is >> _m;
             if (__details__::_M_end_of_file(_is)) break;
-            this->put(_k, _v);
+            this->put({_k, _m});
             _os << "put(" << _k << ", " << _v << ")" << std::endl;
         }; break;
         case __CLEAR__: {
