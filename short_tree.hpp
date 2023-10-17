@@ -189,7 +189,7 @@ protected:
      *          clone recursively.
      * @return first %_n
     */
-    template <typename _NodeGen> node_type* _M_clone_subtree(const node_type* _x, node_type* _p, const _NodeGen& _gen);
+    template <typename _NodeGen> node_type* _M_clone_subtree(const node_type* const _x, node_type* _p, const _NodeGen& _gen);
     void _M_erase_subtree(node_type* _s);
 
     node_type* _M_hook_root(node_type* _x);
@@ -272,17 +272,17 @@ short_tree<_Tp, _Alloc>::_M_assign(const self& _r, const _NodeGen& _gen) -> void
     if (_r.root() == nullptr) return;
     _m_impl._node_count = _r._m_impl._node_count;
     node_type* _n = _M_clone_subtree(_r.root(), &_m_impl._header, _gen);
-    _r.root()->_parent = _n;
+    _m_impl._header._parent = _n;
 };
 template <typename _Tp, typename _Alloc> template <typename _NodeGen> auto
-short_tree<_Tp, _Alloc>::_M_clone_subtree(const node_type* _x, node_type* _p, const _NodeGen& _gen)
+short_tree<_Tp, _Alloc>::_M_clone_subtree(const node_type* const _x, node_type* _p, const _NodeGen& _gen)
  -> node_type* {
     assert(_p != nullptr);
-    for (node_type* _i = _x; _i != nullptr; _i = _i->_right_bro) {
+    for (const node_type* _i = _x; _i != nullptr; _i = _i->_right_bro) {
         node_type* const _n = _gen(_x);
         _n->_parent = _p;
         if (_x->_left_bro == nullptr) _p->_first_child = _n;
-        if (_x->_right_bro == nullptr) _p->_first_child = _n;
+        if (_x->_right_bro == nullptr) _p->_last_child = _n;
         _M_clone_subtree(_x->_first_child, _n, _gen);
     }
     return _p->_first_child;
