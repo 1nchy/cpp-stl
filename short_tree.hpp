@@ -146,6 +146,11 @@ public:
 
     typedef typename base::node_type node_type;
     typedef typename node_type::value_type value_type;
+ 
+    template <typename _K, typename _V, typename _Ek, typename _Ev,
+     typename _H, typename _A
+    > friend class uf_table;
+    // > friend class uf_table<_Key, _Value, _ExtKey, _ExtValue, _Hash, _Alloc>;
 
 private:
     short_tree_header<_Tp> _m_impl;
@@ -170,7 +175,11 @@ public:
     void clear();
     void elect(node_type* _e);
     int check() const;
+    template <typename _NodeHandler> void traverse(const _NodeHandler& _handler) const { _M_traverse(root(), _handler); };
     static node_type* query (node_type* _x);
+
+    template <typename _T, typename _A> friend
+     std::ostream& operator<<(std::ostream& _os, const short_tree<_T, _A>& _s);
 protected:
     template <typename _NodeGen> void _M_assign(const self& _r, const _NodeGen& _gen);
     /**
@@ -229,6 +238,7 @@ protected:
     void _M_multi_compress(node_type* _x);
     void _M_add(node_type* _x);
     void _M_del(node_type* _x);
+    template <typename _NodeHandler> void _M_traverse(node_type* _x, const _NodeHandler& _handler) const;
     template <typename _Ca> int _M_check(const node_type* const _p, node_type* const _x, const _Ca& _check_assistant) const;
 };
 /// (de)constructor
@@ -599,6 +609,14 @@ short_tree<_Tp, _Alloc>::elect(node_type* _e) -> void {
     if (_e == root()) nullptr;
     _M_swap_node_value(_e, root());
 };
+template <typename _Tp, typename _Alloc> template <typename _NodeHandler> auto
+short_tree<_Tp, _Alloc>::_M_traverse(node_type* _x, const _NodeHandler& _handler) const -> void {
+    if (_x == nullptr) return;
+    for (node_type* _i = _x; _i != nullptr; _i = _i->_right_bro) {
+        _handler(_i);
+        _M_traverse(_i->_first_child, _handler);
+    }
+};
 
 /// static implementation
 template <typename _Tp, typename _Alloc> auto
@@ -663,6 +681,19 @@ short_tree<_Tp, _Alloc>::_M_check(const node_type* const _p, node_type* const _x
         if (_result != 0) return _result;
     }
     return 0;
+};
+
+/// output implement
+template <typename _T, typename _A> auto
+operator<<(std::ostream& _os, const short_tree<_T, _A>& _s) -> std::ostream& {
+    _os << '[';
+    int _cnt = 0;
+    _s.traverse([&_os, &_cnt](const auto* _p) {
+        if (_cnt != 0) _os << ", ";
+        _os << _p->val();
+        ++_cnt;
+    });
+    return _os << ']';
 };
 
 };
