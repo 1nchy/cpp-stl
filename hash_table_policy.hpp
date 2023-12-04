@@ -85,6 +85,7 @@ template <typename _Tp> struct hash_node : public node<_Tp> {
     virtual ~hash_node() = default;
     
     self* _next = nullptr;
+    self* _prev = nullptr;
     hash_code _hash_code;
 
     friend bool operator==(const self& _x, const self& _y) {
