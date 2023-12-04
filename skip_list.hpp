@@ -7,6 +7,7 @@
 #include "random.hpp"
 
 #include <cstring>
+#include <unordered_map>
 
 namespace asp {
 
